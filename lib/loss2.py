@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 import numpy as np
+import cv2
 
 import torch
 import torch.nn.functional as F
@@ -72,7 +73,9 @@ def loss_function(
 		scores1 = scores1[ids]
 
 		# Skip the pair if not enough GT correspondences are available
+		# print("correspondences number: {}".format(ids.size(0)))
 		if ids.size(0) < 128:
+			# print("Less than 128 correspondences.")
 			continue
 
 		# Descriptors at the corresponding positions
@@ -125,13 +128,15 @@ def loss_function(
 
 		loss = loss + (
 			torch.sum(scores1 * scores2 * F.relu(margin + diff)) /
-			torch.sum(scores1 * scores2)
+			(torch.sum(scores1 * scores2) + 1e-5)
 		)
 
 		has_grad = True
 		n_valid_samples += 1
 
-		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
+		log_correspond = 10 
+		# if plot and batch['batch_idx'] % batch['log_interval'] == 0:
+		if plot and batch['batch_idx'] % log_correspond == 0:
 			pos1_aux = pos1.cpu().numpy()
 			pos2_aux = pos2.cpu().numpy()
 			k = pos1_aux.shape[1]
@@ -172,18 +177,42 @@ def loss_function(
 				cmap='Reds'
 			)
 			plt.axis('off')
-			savefig('train_vis/%s.%02d.%02d.%d.png' % (
-				'train' if batch['train'] else 'valid',
-				batch['epoch_idx'],
-				batch['batch_idx'] // batch['log_interval'],
-				idx_in_batch
-			), dpi=300)
+			# savefig('train_vis/%s.%02d.%02d.%d.png' % (
+			# 	'train' if batch['train'] else 'valid',
+			# 	batch['epoch_idx'],
+			# 	# batch['batch_idx'] // batch['log_interval'],
+			# 	batch['batch_idx'] // log_correspond,
+			# 	idx_in_batch
+			# ), dpi=300)
 			plt.close()
+
+			# Plotting correspondences
+
+			im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
+			im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
+			
+			for i in range(0, pos1_aux.shape[1], 20):
+				im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
+			for i in range(0, pos2_aux.shape[1], 20):
+				im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
+			
+			im3 = cv2.hconcat([im1, im2])
+
+			for i in range(0, pos1_aux.shape[1], 20):
+				im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 2)
+
+			cv2.imwrite('train_vis/%s.%02d.%02d.%d.png' % (
+				'train_corr' if batch['train'] else 'valid',
+				batch['epoch_idx'],
+				# batch['batch_idx'] // batch['log_interval'],
+				batch['batch_idx'] // log_correspond,
+				idx_in_batch
+			), im3)
 
 	if not has_grad:
 		raise NoGradientError
 
-	loss = loss / n_valid_samples
+	loss = loss / (n_valid_samples + 1e-5)
 
 	return loss
 
@@ -233,6 +262,7 @@ def interpolate_depth(pos, depth):
 	j_bottom_right = j_bottom_right[valid_corners]
 
 	ids = ids[valid_corners]
+
 	if ids.size(0) == 0:
 		raise EmptyTensorError
 
@@ -328,10 +358,13 @@ def warp(
 	pos1 = pos1[:, new_ids]
 	estimated_depth = XYZ2[2, new_ids]
 
+	differnce = torch.abs(estimated_depth - annotated_depth)
 	inlier_mask = torch.abs(estimated_depth - annotated_depth) < 0.05
 
 	ids = ids[inlier_mask]
+	# print("ids size: ", ids.shape)
 	if ids.size(0) == 0:
+		# print("EmptyTensorError exception.")
 		raise EmptyTensorError
 
 	pos2 = pos2[:, inlier_mask]

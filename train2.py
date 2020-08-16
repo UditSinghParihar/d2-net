@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 
 import os
+from sys import exit
 
 import shutil
 
@@ -15,9 +16,10 @@ from tqdm import tqdm
 
 import warnings
 
-from lib.dataset import MegaDepthDataset
+# from lib.dataset import MegaDepthDataset
+from lib.dataset2 import LabDataset
 from lib.exceptions import NoGradientError
-from lib.loss import loss_function
+from lib.loss2 import loss_function
 from lib.model import D2Net
 
 
@@ -35,20 +37,34 @@ np.random.seed(1)
 parser = argparse.ArgumentParser(description='Training script')
 
 parser.add_argument(
+	'--imgPairs', type=str, required=True, 
+	help='path to opposite image pairs'
+)
+parser.add_argument(
+	'--poses', type=str, required=True,
+	help='path to poses2W'
+)
+parser.add_argument(
+	'--K', type=str, required=True,
+	help='path to calibration matrix'
+)
+
+parser.add_argument(
 	'--dataset_path', type=str, required=True,
 	help='path to the dataset'
 )
-parser.add_argument(
-	'--scene_info_path', type=str, required=True,
-	help='path to the processed scenes'
-)
+
+# parser.add_argument(
+# 	'--scene_info_path', type=str, required=True,
+# 	help='path to the processed scenes'
+# )
 
 parser.add_argument(
 	'--preprocessing', type=str, default='caffe',
 	help='image preprocessing (caffe or torch)'
 )
 parser.add_argument(
-	'--model_file', type=str, default='models/d2_ots.pth',
+	'--model_file', type=str, default='models/d2_tf_test.pth',
 	help='path to the full model'
 )
 
@@ -139,12 +155,15 @@ if args.use_validation:
 		num_workers=args.num_workers
 	)
 
-training_dataset = MegaDepthDataset(
-	scene_list_path='megadepth_utils/train_scenes.txt',
-	scene_info_path=args.scene_info_path,
-	base_path=args.dataset_path,
-	preprocessing=args.preprocessing
-)
+# training_dataset = MegaDepthDataset(
+#     scene_list_path='megadepth_utils/train_scenes.txt',
+#     scene_info_path=args.scene_info_path,
+#     base_path=args.dataset_path,
+#     preprocessing=args.preprocessing
+# )
+
+training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+
 training_dataloader = DataLoader(
 	training_dataset,
 	batch_size=args.batch_size,

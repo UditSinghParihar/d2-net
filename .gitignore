@@ -13,3 +13,4 @@ hpatches_sequences/cache-top
 vlfeat
 *.d2-net
 train_corr/
+data/

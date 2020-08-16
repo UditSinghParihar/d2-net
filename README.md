@@ -1,3 +1,16 @@
+## D2-Net Training on Custom Dataset
+
+1. Training D2Net:  
+	1. `python train2.py --imgPairs '/home/cair/backup/d2-net/data/imagePairs.csv' --poses '/home/cair/backup/d2-net/data/poses2W.npy' --K '/home/cair/backup/d2-net/data/K.npy' --dataset_path '/home/cair/backup/d2-net' --plot`
+
+2. Training would generate:  
+	1. `train_vis/ checkpoints/ log.txt`
+
+3. Input data format:  
+	1. Left hand coordinate system (Z forward, Y Down, X Right).  
+	2. `pose1`: World wrt to camera 1.  
+	3. Depth file stores values in meters.  
+
 # D2-Net: A Trainable CNN for Joint Detection and Description of Local Features
 
 This repository contains the implementation of the following paper:

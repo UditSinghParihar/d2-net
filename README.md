@@ -11,6 +11,10 @@
 	2. `pose1`: World wrt to camera 1.  
 	3. Depth file stores values in meters.  
 
+4. Extracting and Matching D2Net features:  
+	1. `python extractMatch.py '/home/cair/backup/deep_floor/correspond/qualitative/pair_2/homo1.jpg' '/home/cair/backup/deep_floor/correspond/qualitative/pair_2/homo2.jpg'`  
+
+
 # D2-Net: A Trainable CNN for Joint Detection and Description of Local Features
 
 This repository contains the implementation of the following paper:

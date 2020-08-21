@@ -16,18 +16,18 @@ from lib.model_test import D2Net
 from lib.utils import preprocess_image
 from lib.pyramid import process_multiscale
 
-# CUDA
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
+import cv2
+import matplotlib.pyplot as plt
+import os
+from sys import exit
+from PIL import Image
+from skimage.feature import match_descriptors
+from skimage.measure import ransac
+from skimage.transform import ProjectiveTransform
 
-# Argument parsing
+
 parser = argparse.ArgumentParser(description='Feature extraction script')
-
-parser.add_argument(
-	'--image_list_file', type=str, required=True,
-	help='path to a file containing a list of images to process'
-)
-
+parser.add_argument('imgs', type=str, nargs=2)
 parser.add_argument(
 	'--preprocessing', type=str, default='caffe',
 	help='image preprocessing (caffe or torch)'
@@ -36,11 +36,6 @@ parser.add_argument(
 	'--model_file', type=str, default='models/d2_tf.pth',
 	help='path to the full model'
 )
-# parser.add_argument(
-# 	'--model_file', type=str, default='checkpoints/d2.10.pth',
-# 	help='path to the full model'
-# )
-
 parser.add_argument(
 	'--max_edge', type=int, default=1600,
 	help='maximum image size at network input'
@@ -58,42 +53,24 @@ parser.add_argument(
 	'--output_type', type=str, default='npz',
 	help='output file type (npz or mat)'
 )
-
 parser.add_argument(
 	'--multiscale', dest='multiscale', action='store_true',
 	help='extract multiscale features'
 )
 parser.set_defaults(multiscale=False)
-
 parser.add_argument(
 	'--no-relu', dest='use_relu', action='store_false',
 	help='remove ReLU after the dense feature extraction module'
 )
 parser.set_defaults(use_relu=True)
 
-args = parser.parse_args()
 
-print(args)
-
-# Creating CNN model
-model = D2Net(
-	model_file=args.model_file,
-	use_relu=args.use_relu,
-	use_cuda=use_cuda
-)
-
-# Process the file
-with open(args.image_list_file, 'r') as f:
-	lines = f.readlines()
-for line in tqdm(lines, total=len(lines)):
-	path = line.strip()
-
-	image = imageio.imread(path)
+def extract(file, args, model, device):
+	image = imageio.imread(file)
 	if len(image.shape) == 2:
 		image = image[:, :, np.newaxis]
 		image = np.repeat(image, 3, -1)
 
-	# TODO: switch to PIL.Image due to deprecation of scipy.misc.imresize.
 	resized_image = image
 	if max(resized_image.shape) > args.max_edge:
 		resized_image = scipy.misc.imresize(
@@ -132,29 +109,61 @@ for line in tqdm(lines, total=len(lines)):
 				scales=[1]
 			)
 
-	# Input image coordinates
 	keypoints[:, 0] *= fact_i
 	keypoints[:, 1] *= fact_j
-	# i, j -> u, v
 	keypoints = keypoints[:, [1, 0, 2]]
 
-	if args.output_type == 'npz':
-		with open(path + args.output_extension, 'wb') as output_file:
-			np.savez(
-				output_file,
-				keypoints=keypoints,
-				scores=scores,
-				descriptors=descriptors
-			)
-	elif args.output_type == 'mat':
-		with open(path + args.output_extension, 'wb') as output_file:
-			scipy.io.savemat(
-				output_file,
-				{
-					'keypoints': keypoints,
-					'scores': scores,
-					'descriptors': descriptors
-				}
-			)
-	else:
-		raise ValueError('Unknown output type.')
+	feat = {}
+	feat['keypoints'] = keypoints
+	feat['scores'] = scores
+	feat['descriptors'] = descriptors
+
+	return feat
+
+
+def	drawMatches(file1, file2, feat1, feat2):
+	image1 = np.array(Image.open(file1))
+	image2 = np.array(Image.open(file2))
+
+	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
+	print('Number of raw matches: %d.' % matches.shape[0])
+
+	keypoints_left = feat1['keypoints'][matches[:, 0], : 2]
+	keypoints_right = feat2['keypoints'][matches[:, 1], : 2]
+	np.random.seed(0)
+	model, inliers = ransac(
+		(keypoints_left, keypoints_right),
+		ProjectiveTransform, min_samples=4,
+		residual_threshold=4, max_trials=10000
+	)
+	n_inliers = np.sum(inliers)
+	print('Number of inliers: %d.' % n_inliers)
+
+	inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_left[inliers]]
+	inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_right[inliers]]
+	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
+	image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
+
+	plt.figure(figsize=(20, 20))
+	plt.imshow(image3)
+	plt.axis('off')
+	plt.show()
+
+
+
+if __name__ == '__main__':
+	use_cuda = torch.cuda.is_available()
+	device = torch.device("cuda:0" if use_cuda else "cpu")
+	args = parser.parse_args()
+
+	model = D2Net(
+		model_file=args.model_file,
+		use_relu=args.use_relu,
+		use_cuda=use_cuda
+	)
+
+	feat1 = extract(args.imgs[0], args, model, device)
+	feat2 = extract(args.imgs[1], args, model, device)
+	print("Features extracted.")
+
+	drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)

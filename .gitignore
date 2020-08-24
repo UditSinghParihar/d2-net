@@ -14,3 +14,6 @@ vlfeat
 *.d2-net
 train_corr/
 data/
+data_gazebo/
+train_corr1/
+train_corr2/

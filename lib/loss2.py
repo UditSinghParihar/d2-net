@@ -191,14 +191,14 @@ def loss_function(
 			im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
 			im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
 			
-			for i in range(0, pos1_aux.shape[1], 20):
+			for i in range(0, pos1_aux.shape[1], 5):
 				im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
-			for i in range(0, pos2_aux.shape[1], 20):
+			for i in range(0, pos2_aux.shape[1], 5):
 				im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
 			
 			im3 = cv2.hconcat([im1, im2])
 
-			for i in range(0, pos1_aux.shape[1], 20):
+			for i in range(0, pos1_aux.shape[1], 5):
 				im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 2)
 
 			cv2.imwrite('train_vis/%s.%02d.%02d.%d.png' % (

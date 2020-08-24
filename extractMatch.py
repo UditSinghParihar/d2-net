@@ -32,8 +32,12 @@ parser.add_argument(
 	'--preprocessing', type=str, default='caffe',
 	help='image preprocessing (caffe or torch)'
 )
+# parser.add_argument(
+# 	'--model_file', type=str, default='models/d2_tf.pth',
+# 	help='path to the full model'
+# )
 parser.add_argument(
-	'--model_file', type=str, default='models/d2_tf.pth',
+	'--model_file', type=str, default='checkpoints1/d2.08.pth',
 	help='path to the full model'
 )
 parser.add_argument(
@@ -150,6 +154,29 @@ def	drawMatches(file1, file2, feat1, feat2):
 	plt.show()
 
 
+def	drawMatches2(file1, file2, feat1, feat2):
+	image1 = cv2.imread(file1)
+	image2 = cv2.imread(file2)
+
+	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
+	keypoints_left = feat1['keypoints'][matches[:, 0], : 2].T
+	keypoints_right = feat2['keypoints'][matches[:, 1], : 2].T
+
+	# print(keypoints_left.shape, keypoints_right.shape)
+
+	for i in range(keypoints_left.shape[1]):
+		image1 = cv2.circle(image1, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), 2, (0, 0, 255), 4)
+	for i in range(keypoints_right.shape[1]):
+		image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
+
+	im4 = cv2.hconcat([image1, image2])	
+
+	for i in range(keypoints_left.shape[1]):
+		im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
+
+	cv2.imshow("Image_lines", im4)
+	cv2.waitKey(0)
+
 
 if __name__ == '__main__':
 	use_cuda = torch.cuda.is_available()
@@ -167,3 +194,5 @@ if __name__ == '__main__':
 	print("Features extracted.")
 
 	drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
+
+	drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)

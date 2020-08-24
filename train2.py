@@ -18,6 +18,7 @@ import warnings
 
 # from lib.dataset import MegaDepthDataset
 from lib.dataset2 import LabDataset
+from lib.datasetGazebo import GazeboDataset
 from lib.exceptions import NoGradientError
 from lib.loss2 import loss_function
 from lib.model import D2Net
@@ -64,7 +65,7 @@ parser.add_argument(
 	help='image preprocessing (caffe or torch)'
 )
 parser.add_argument(
-	'--model_file', type=str, default='models/d2_tf_test.pth',
+	'--model_file', type=str, default='models/d2_ots.pth',
 	help='path to the full model'
 )
 
@@ -73,7 +74,7 @@ parser.add_argument(
 	help='number of training epochs'
 )
 parser.add_argument(
-	'--lr', type=float, default=1e-3,
+	'--lr', type=float, default=0.0003,
 	help='initial learning rate'
 )
 parser.add_argument(
@@ -162,7 +163,8 @@ if args.use_validation:
 #     preprocessing=args.preprocessing
 # )
 
-training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+# training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
 
 training_dataloader = DataLoader(
 	training_dataset,

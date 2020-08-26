@@ -14,6 +14,8 @@
 4. Extracting and Matching D2Net features:  
 	1. `python extractMatch.py '/home/cair/backup/deep_floor/correspond/qualitative/pair_2/homo1.jpg' '/home/cair/backup/deep_floor/correspond/qualitative/pair_2/homo2.jpg'`  
 
+	2. `python train2.py --imgPairs '/home/cair/backup/d2-net/data_gazebo/img_pairs.csv' --poses '/home/cair/backup/d2-net/data_gazebo/poses2W.npy' --K '/home/cair/backup/d2-net/data_gazebo/K.npy' --dataset_path '/home/cair/backup/d2-net/data_gazebo' --plot`
+
 
 # D2-Net: A Trainable CNN for Joint Detection and Description of Local Features
 

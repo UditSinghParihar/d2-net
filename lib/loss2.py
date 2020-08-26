@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 import cv2
+from sys import exit
 
 import torch
 import torch.nn.functional as F
@@ -135,8 +136,8 @@ def loss_function(
 		n_valid_samples += 1
 
 		log_correspond = 10 
-		# if plot and batch['batch_idx'] % batch['log_interval'] == 0:
-		if plot and batch['batch_idx'] % log_correspond == 0:
+		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
+		# if plot and batch['batch_idx'] % log_correspond == 0:
 			pos1_aux = pos1.cpu().numpy()
 			pos2_aux = pos2.cpu().numpy()
 			k = pos1_aux.shape[1]
@@ -177,37 +178,37 @@ def loss_function(
 				cmap='Reds'
 			)
 			plt.axis('off')
-			# savefig('train_vis/%s.%02d.%02d.%d.png' % (
-			# 	'train' if batch['train'] else 'valid',
-			# 	batch['epoch_idx'],
-			# 	# batch['batch_idx'] // batch['log_interval'],
-			# 	batch['batch_idx'] // log_correspond,
-			# 	idx_in_batch
-			# ), dpi=300)
-			plt.close()
-
-			# Plotting correspondences
-
-			im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
-			im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
-			
-			for i in range(0, pos1_aux.shape[1], 5):
-				im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
-			for i in range(0, pos2_aux.shape[1], 5):
-				im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
-			
-			im3 = cv2.hconcat([im1, im2])
-
-			for i in range(0, pos1_aux.shape[1], 5):
-				im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 2)
-
-			cv2.imwrite('train_vis/%s.%02d.%02d.%d.png' % (
-				'train_corr' if batch['train'] else 'valid',
+			savefig('train_vis/%s.%02d.%02d.%d.png' % (
+				'train' if batch['train'] else 'valid',
 				batch['epoch_idx'],
 				# batch['batch_idx'] // batch['log_interval'],
 				batch['batch_idx'] // log_correspond,
 				idx_in_batch
-			), im3)
+			), dpi=300)
+			plt.close()
+
+			# Plotting correspondences
+
+			# im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
+			# im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
+			
+			# for i in range(0, pos1_aux.shape[1], 5):
+			# 	im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
+			# for i in range(0, pos2_aux.shape[1], 5):
+			# 	im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
+			
+			# im3 = cv2.hconcat([im1, im2])
+
+			# for i in range(0, pos1_aux.shape[1], 5):
+			# 	im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 2)
+
+			# cv2.imwrite('train_vis/%s.%02d.%02d.%d.png' % (
+			# 	'train_corr' if batch['train'] else 'valid',
+			# 	batch['epoch_idx'],
+			# 	# batch['batch_idx'] // batch['log_interval'],
+			# 	batch['batch_idx'] // log_correspond,
+			# 	idx_in_batch
+			# ), im3)
 
 	if not has_grad:
 		raise NoGradientError

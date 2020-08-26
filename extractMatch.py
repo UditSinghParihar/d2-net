@@ -193,6 +193,6 @@ if __name__ == '__main__':
 	feat2 = extract(args.imgs[1], args, model, device)
 	print("Features extracted.")
 
-	drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
+	# drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
 
 	drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)

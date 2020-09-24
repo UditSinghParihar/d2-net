@@ -21,7 +21,7 @@ from lib.dataset2 import LabDataset
 from lib.datasetGazebo import GazeboDataset
 from lib.exceptions import NoGradientError
 from lib.loss2 import loss_function
-from lib.model import D2Net
+from lib.model2 import D2Net, D2NetAlign
 
 
 # CUDA
@@ -65,7 +65,7 @@ parser.add_argument(
 	help='image preprocessing (caffe or torch)'
 )
 parser.add_argument(
-	'--model_file', type=str, default='models/d2_ots.pth',
+	'--model_file', type=str, default='models/d2_tf.pth',
 	help='path to the full model'
 )
 
@@ -74,7 +74,7 @@ parser.add_argument(
 	help='number of training epochs'
 )
 parser.add_argument(
-	'--lr', type=float, default=0.0003,
+	'--lr', type=float, default=1e-3,
 	help='initial learning rate'
 )
 parser.add_argument(
@@ -130,15 +130,21 @@ if args.plot:
 		os.mkdir(plot_path)
 
 # Creating CNN model
-model = D2Net(
+model = D2NetAlign(
 	model_file=args.model_file,
 	use_cuda=use_cuda
 )
+
+totalParams = sum(p.numel() for p in model.parameters())
+trainParams = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print("Total parameters: {} | Trainable parameters: {}".format(totalParams, trainParams))
 
 # Optimizer
 optimizer = optim.Adam(
 	filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr
 )
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.65)
+
 
 # Dataset
 if args.use_validation:
@@ -179,6 +185,10 @@ def process_epoch(
 		model, loss_function, optimizer, dataloader, device,
 		log_file, args, train=True
 ):
+	for param_group in optimizer.param_groups:
+		print("learning rate: {}".format(param_group['lr']))
+
+
 	epoch_losses = []
 
 	torch.set_grad_enabled(train)
@@ -221,6 +231,8 @@ def process_epoch(
 		np.mean(epoch_losses)
 	))
 	log_file.flush()
+
+	scheduler.step()
 
 	return np.mean(epoch_losses)
 

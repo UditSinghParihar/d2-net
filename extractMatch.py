@@ -32,14 +32,14 @@ parser.add_argument(
 	'--preprocessing', type=str, default='caffe',
 	help='image preprocessing (caffe or torch)'
 )
-# parser.add_argument(
-# 	'--model_file', type=str, default='models/d2_tf.pth',
-# 	help='path to the full model'
-# )
 parser.add_argument(
-	'--model_file', type=str, default='checkpoints1/d2.08.pth',
+	'--model_file', type=str, default='models/d2_tf.pth',
 	help='path to the full model'
 )
+# parser.add_argument(
+# 	'--model_file', type=str, default='checkpoints1/d2.08.pth',
+# 	help='path to the full model'
+# )
 parser.add_argument(
 	'--max_edge', type=int, default=1600,
 	help='maximum image size at network input'
@@ -193,6 +193,6 @@ if __name__ == '__main__':
 	feat2 = extract(args.imgs[1], args, model, device)
 	print("Features extracted.")
 
-	# drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
+	drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
 
 	drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)

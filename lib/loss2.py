@@ -17,7 +17,7 @@ from lib.utils import (
 )
 from lib.exceptions import NoGradientError, EmptyTensorError
 
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 
 def loss_function(
@@ -27,6 +27,11 @@ def loss_function(
 		'image1': batch['image1'].to(device),
 		'image2': batch['image2'].to(device)
 	})
+
+	# print(output['dense_features1'].shape, output['dense_features2'].shape, 
+	# 	output['scores1'].shape, output['scores2'].shape)
+	# print(batch['image1'].shape, batch['image2'].shape)
+	# exit(1)
 
 	loss = torch.tensor(np.array([0], dtype=np.float32), device=device)
 	has_grad = False
@@ -53,14 +58,23 @@ def loss_function(
 		_, h2, w2 = dense_features2.size()
 		scores2 = output['scores2'][idx_in_batch]
 
+		H1 = output['H1'][idx_in_batch] 
+		H2 = output['H2'][idx_in_batch]
+
 		all_descriptors1 = F.normalize(dense_features1.view(c, -1), dim=0)
 		descriptors1 = all_descriptors1
+		# print("Descriptors: ", descriptors1.shape)
 
 		all_descriptors2 = F.normalize(dense_features2.view(c, -1), dim=0)
 
 		# Warp the positions from image 1 to image 2
-		fmap_pos1 = grid_positions(h1, w1, device)
+		hOrig, wOrig = 60, 80
+		fmap_pos1 = grid_positions(hOrig, wOrig, device)
+
+		# fmap_pos1 = grid_positions(h1, w1, device)
+
 		pos1 = upscale_positions(fmap_pos1, scaling_steps=scaling_steps)
+
 		try:
 			pos1, pos2, ids = warp(
 				pos1,
@@ -69,6 +83,12 @@ def loss_function(
 			)
 		except EmptyTensorError:
 			continue
+
+		pos1, pos2, ids, fmap_pos1 = homoAlign(pos1, pos2, ids, fmap_pos1, H1, H2)
+
+		print("Warp output: ", pos1.shape, pos2.shape, ids.shape)
+		exit(1)
+
 		fmap_pos1 = fmap_pos1[:, ids]
 		descriptors1 = descriptors1[:, ids]
 		scores1 = scores1[ids]
@@ -76,7 +96,6 @@ def loss_function(
 		# Skip the pair if not enough GT correspondences are available
 		# print("correspondences number: {}".format(ids.size(0)))
 		if ids.size(0) < 128:
-			# print("Less than 128 correspondences.")
 			continue
 
 		# Descriptors at the corresponding positions
@@ -87,6 +106,8 @@ def loss_function(
 			dense_features2[:, fmap_pos2[0, :], fmap_pos2[1, :]],
 			dim=0
 		)
+		# print("Descriptors: ", descriptors1.shape, descriptors2.shape)
+		# exit(1)
 		positive_distance = 2 - 2 * (
 			descriptors1.t().unsqueeze(1) @ descriptors2.t().unsqueeze(2)
 		).squeeze()
@@ -129,7 +150,7 @@ def loss_function(
 
 		loss = loss + (
 			torch.sum(scores1 * scores2 * F.relu(margin + diff)) /
-			(torch.sum(scores1 * scores2) + 1e-5)
+			(torch.sum(scores1 * scores2) )
 		)
 
 		has_grad = True
@@ -213,12 +234,14 @@ def loss_function(
 	if not has_grad:
 		raise NoGradientError
 
-	loss = loss / (n_valid_samples + 1e-5)
+	loss = loss / (n_valid_samples )
 
 	return loss
 
 
 def interpolate_depth(pos, depth):
+	# Depth filtering and interpolation of sparse depth
+
 	device = pos.device
 
 	ids = torch.arange(0, pos.size(1), device=device)
@@ -292,6 +315,7 @@ def interpolate_depth(pos, depth):
 	j_bottom_right = j_bottom_right[valid_depth]
 
 	ids = ids[valid_depth]
+
 	if ids.size(0) == 0:
 		raise EmptyTensorError
 
@@ -363,7 +387,6 @@ def warp(
 	inlier_mask = torch.abs(estimated_depth - annotated_depth) < 0.05
 
 	ids = ids[inlier_mask]
-	# print("ids size: ", ids.shape)
 	if ids.size(0) == 0:
 		# print("EmptyTensorError exception.")
 		raise EmptyTensorError
@@ -372,3 +395,7 @@ def warp(
 	pos1 = pos1[:, inlier_mask]
 
 	return pos1, pos2, ids
+
+
+def homoAlign(pos1, pos2, ids, fmap_pos1, H1, H2):
+	return None, None, None, None

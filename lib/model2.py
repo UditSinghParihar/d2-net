@@ -37,7 +37,7 @@ class DenseFeatureExtractionModule(nn.Module):
 
 		# Fix forward parameters
 		for param in self.model.parameters():
-			param.requires_grad = True
+			param.requires_grad = False
 		if finetune_feature_extraction:
 			# Unlock conv4_3
 			for param in list(self.model.parameters())[-2 :]:
@@ -89,6 +89,9 @@ class SoftDetectionModule(nn.Module):
 class Align(nn.Module):
 	def __init__(self):
 		super(Align, self).__init__()
+
+		# Resnet-18 features
+		# Predict 8 points (4 pixels) per homography matrix
 
 		points_src = torch.FloatTensor([[
 			[190,210],[455,210],[633,475],[0,475],
@@ -200,12 +203,14 @@ class D2NetAlign(nn.Module):
 
 		plt.show()
 
+		exit(1)
+
 
 	def forward(self, batch):
 		b = batch['image1'].size(0)
-
-		img_warp1, img_warp2, H1, H2 = self.alignment(batch['image1'], batch['image2'])
 		
+		img_warp1, img_warp2, H1, H2 = self.alignment(batch['image1'], batch['image2'])
+
 		dense_features = self.dense_feature_extraction(
 			torch.cat([img_warp1, img_warp2], dim=0)
 		)

@@ -16,6 +16,8 @@ from lib.utils import (
 	imshow_image
 )
 from lib.exceptions import NoGradientError, EmptyTensorError
+import torchgeometry as tgm
+
 
 # matplotlib.use('Agg')
 
@@ -27,11 +29,6 @@ def loss_function(
 		'image1': batch['image1'].to(device),
 		'image2': batch['image2'].to(device)
 	})
-
-	# print(output['dense_features1'].shape, output['dense_features2'].shape, 
-	# 	output['scores1'].shape, output['scores2'].shape)
-	# print(batch['image1'].shape, batch['image2'].shape)
-	# exit(1)
 
 	loss = torch.tensor(np.array([0], dtype=np.float32), device=device)
 	has_grad = False
@@ -58,22 +55,18 @@ def loss_function(
 		_, h2, w2 = dense_features2.size()
 		scores2 = output['scores2'][idx_in_batch]
 
-		H1 = output['H1'][idx_in_batch] 
-		H2 = output['H2'][idx_in_batch]
 
 		all_descriptors1 = F.normalize(dense_features1.view(c, -1), dim=0)
 		descriptors1 = all_descriptors1
-		# print("Descriptors: ", descriptors1.shape)
 
 		all_descriptors2 = F.normalize(dense_features2.view(c, -1), dim=0)
 
 		# Warp the positions from image 1 to image 2
+		fmap_pos1 = grid_positions(h1, w1, device)
+
 		hOrig, wOrig = 60, 80
-		fmap_pos1 = grid_positions(hOrig, wOrig, device)
-
-		# fmap_pos1 = grid_positions(h1, w1, device)
-
-		pos1 = upscale_positions(fmap_pos1, scaling_steps=scaling_steps)
+		fmap_pos1Orig = grid_positions(hOrig, wOrig, device)
+		pos1 = upscale_positions(fmap_pos1Orig, scaling_steps=scaling_steps)
 
 		try:
 			pos1, pos2, ids = warp(
@@ -83,10 +76,24 @@ def loss_function(
 			)
 		except EmptyTensorError:
 			continue
+		
+		H1 = output['H1'][idx_in_batch] 
+		H2 = output['H2'][idx_in_batch]
 
-		pos1, pos2, ids, fmap_pos1 = homoAlign(pos1, pos2, ids, fmap_pos1, H1, H2)
+		# np.save("pos1_before.npy", pos1.cpu().numpy())
+		# np.save("pos2_before.npy", pos2.cpu().numpy())
 
-		print("Warp output: ", pos1.shape, pos2.shape, ids.shape)
+		pos1, pos2 = homoAlign(pos1, pos2, ids, H1, H2, device)
+
+		# np.save("pos1_after.npy", pos1.cpu().numpy())
+		# np.save("pos2_after.npy", pos2.cpu().numpy())
+
+		img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
+		img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
+
+		drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output)
+
+		# print("Warp output: ", pos1.shape, fmap_pos1.shape, pos2.shape, ids.shape)
 		exit(1)
 
 		fmap_pos1 = fmap_pos1[:, ids]
@@ -106,8 +113,7 @@ def loss_function(
 			dense_features2[:, fmap_pos2[0, :], fmap_pos2[1, :]],
 			dim=0
 		)
-		# print("Descriptors: ", descriptors1.shape, descriptors2.shape)
-		# exit(1)
+
 		positive_distance = 2 - 2 * (
 			descriptors1.t().unsqueeze(1) @ descriptors2.t().unsqueeze(2)
 		).squeeze()
@@ -156,81 +162,9 @@ def loss_function(
 		has_grad = True
 		n_valid_samples += 1
 
-		log_correspond = 10 
 		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
-		# if plot and batch['batch_idx'] % log_correspond == 0:
-			pos1_aux = pos1.cpu().numpy()
-			pos2_aux = pos2.cpu().numpy()
-			k = pos1_aux.shape[1]
-			col = np.random.rand(k, 3)
-			n_sp = 4
-			plt.figure()
-			plt.subplot(1, n_sp, 1)
-			im1 = imshow_image(
-				batch['image1'][idx_in_batch].cpu().numpy(),
-				preprocessing=batch['preprocessing']
-			)
-			plt.imshow(im1)
-			plt.scatter(
-				pos1_aux[1, :], pos1_aux[0, :],
-				s=0.25**2, c=col, marker=',', alpha=0.5
-			)
-			plt.axis('off')
-			plt.subplot(1, n_sp, 2)
-			plt.imshow(
-				output['scores1'][idx_in_batch].data.cpu().numpy(),
-				cmap='Reds'
-			)
-			plt.axis('off')
-			plt.subplot(1, n_sp, 3)
-			im2 = imshow_image(
-				batch['image2'][idx_in_batch].cpu().numpy(),
-				preprocessing=batch['preprocessing']
-			)
-			plt.imshow(im2)
-			plt.scatter(
-				pos2_aux[1, :], pos2_aux[0, :],
-				s=0.25**2, c=col, marker=',', alpha=0.5
-			)
-			plt.axis('off')
-			plt.subplot(1, n_sp, 4)
-			plt.imshow(
-				output['scores2'][idx_in_batch].data.cpu().numpy(),
-				cmap='Reds'
-			)
-			plt.axis('off')
-			savefig('train_vis/%s.%02d.%02d.%d.png' % (
-				'train' if batch['train'] else 'valid',
-				batch['epoch_idx'],
-				# batch['batch_idx'] // batch['log_interval'],
-				batch['batch_idx'] // log_correspond,
-				idx_in_batch
-			), dpi=300)
-			plt.close()
-
-			# Plotting correspondences
-
-			# im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
-			# im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
-			
-			# for i in range(0, pos1_aux.shape[1], 5):
-			# 	im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
-			# for i in range(0, pos2_aux.shape[1], 5):
-			# 	im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
-			
-			# im3 = cv2.hconcat([im1, im2])
-
-			# for i in range(0, pos1_aux.shape[1], 5):
-			# 	im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 2)
-
-			# cv2.imwrite('train_vis/%s.%02d.%02d.%d.png' % (
-			# 	'train_corr' if batch['train'] else 'valid',
-			# 	batch['epoch_idx'],
-			# 	# batch['batch_idx'] // batch['log_interval'],
-			# 	batch['batch_idx'] // log_correspond,
-			# 	idx_in_batch
-			# ), im3)
-
+			drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=False)			
+		exit(1)
 	if not has_grad:
 		raise NoGradientError
 
@@ -397,5 +331,113 @@ def warp(
 	return pos1, pos2, ids
 
 
-def homoAlign(pos1, pos2, ids, fmap_pos1, H1, H2):
-	return None, None, None, None
+def drawTraining(image1, image2, pos1, pos2, batch, idx_in_batch, output, save=False):
+	pos1_aux = pos1.cpu().numpy()
+	pos2_aux = pos2.cpu().numpy()
+
+	k = pos1_aux.shape[1]
+	col = np.random.rand(k, 3)
+	n_sp = 4
+	plt.figure()
+	plt.subplot(1, n_sp, 1)
+	im1 = imshow_image(
+		image1[0].cpu().numpy(),
+		preprocessing=batch['preprocessing']
+	)
+	plt.imshow(im1)
+	plt.scatter(
+		pos1_aux[1, :], pos1_aux[0, :],
+		s=0.25**2, c=col, marker=',', alpha=0.5
+	)
+	plt.axis('off')
+	plt.subplot(1, n_sp, 2)
+	plt.imshow(
+		output['scores1'][idx_in_batch].data.cpu().numpy(),
+		cmap='Reds'
+	)
+	plt.axis('off')
+	plt.subplot(1, n_sp, 3)
+	im2 = imshow_image(
+		image2[0].cpu().numpy(),
+		preprocessing=batch['preprocessing']
+	)
+	plt.imshow(im2)
+	plt.scatter(
+		pos2_aux[1, :], pos2_aux[0, :],
+		s=0.25**2, c=col, marker=',', alpha=0.5
+	)
+	plt.axis('off')
+	plt.subplot(1, n_sp, 4)
+	plt.imshow(
+		output['scores2'][idx_in_batch].data.cpu().numpy(),
+		cmap='Reds'
+	)
+	plt.axis('off')
+
+	if(save == True):
+		savefig('train_vis/%s.%02d.%02d.%d.png' % (
+			'train' if batch['train'] else 'valid',
+			batch['epoch_idx'],
+			batch['batch_idx'] // batch['log_interval'],
+			idx_in_batch
+		), dpi=300)
+	else:
+		plt.show()
+	
+	plt.close()
+
+	im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
+	im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
+
+	for i in range(0, pos1_aux.shape[1], 5):
+		im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
+	for i in range(0, pos2_aux.shape[1], 5):
+		im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
+
+	im3 = cv2.hconcat([im1, im2])
+
+	for i in range(0, pos1_aux.shape[1], 50):
+		im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 1)
+
+	if(save == True):
+		cv2.imwrite('train_vis/%s.%02d.%02d.%d.png' % (
+			'train_corr' if batch['train'] else 'valid',
+			batch['epoch_idx'],
+			batch['batch_idx'] // batch['log_interval'],
+			idx_in_batch
+		), im3)
+	else:
+		cv2.imshow('Image', im3)
+		cv2.waitKey(0)
+
+
+def homoAlign(pos1, pos2, ids, H1, H2, device):
+	ones = torch.ones(pos1.shape[1]).reshape(1, pos1.shape[1]).to(device)
+
+	pos1Homo = torch.cat((pos1, ones), dim=0)
+	pos2Homo = torch.cat((pos2, ones), dim=0)
+
+	pos1Warp = H1 @ pos1Homo
+	pos2Warp = H2 @ pos2Homo
+
+	pos1Warp = pos1Warp/pos1Warp[2, :]
+	pos1Warp = pos1Warp[0:2, :]
+
+	pos2Warp = pos2Warp/pos2Warp[2, :]
+	pos2Warp = pos2Warp[0:2, :]
+
+	pos1Pov = []
+	pos2Pov = []
+
+	for i in range(pos1.shape[1]):
+		if(400 > pos1Warp[0, i] > 0 and 400 > pos1Warp[1, i] > 0 and 400 > pos2Warp[0, i] > 0 and 400 > pos2Warp[1, i] > 0):
+			pos1Pov.append((pos1Warp[0, i], pos1Warp[1, i]))
+			pos2Pov.append((pos2Warp[0, i], pos2Warp[1, i]))
+
+	pos1Pov = torch.Tensor(pos1Pov)
+	pos2Pov = torch.Tensor(pos2Pov)
+
+	pos1Pov = torch.transpose(pos1Pov, 0, 1)
+	pos2Pov = torch.transpose(pos2Pov, 0, 1)
+
+	return pos1Pov, pos2Pov

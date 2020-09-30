@@ -17,7 +17,7 @@ from tqdm import tqdm
 import warnings
 
 # from lib.dataset import MegaDepthDataset
-from lib.dataset2 import LabDataset
+# from lib.dataset2 import LabDataset
 from lib.datasetGazebo import GazeboDataset
 from lib.exceptions import NoGradientError
 from lib.loss2 import loss_function
@@ -187,7 +187,6 @@ def process_epoch(
 ):
 	for param_group in optimizer.param_groups:
 		print("learning rate: {}".format(param_group['lr']))
-
 
 	epoch_losses = []
 

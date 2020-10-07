@@ -64,7 +64,7 @@ def loss_function(
 		# Warp the positions from image 1 to image 2
 		fmap_pos1 = grid_positions(h1, w1, device)
 
-		hOrig, wOrig = 60, 80
+		hOrig, wOrig = int(batch['image1'].shape[2]/8), int(batch['image1'].shape[3]/8)
 		fmap_pos1Orig = grid_positions(hOrig, wOrig, device)
 		pos1 = upscale_positions(fmap_pos1Orig, scaling_steps=scaling_steps)
 
@@ -80,28 +80,24 @@ def loss_function(
 		H1 = output['H1'][idx_in_batch] 
 		H2 = output['H2'][idx_in_batch]
 
-		# np.save("pos1_before.npy", pos1.cpu().numpy())
-		# np.save("pos2_before.npy", pos2.cpu().numpy())
+		try:
+			pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
+		except IndexError:
+			continue
 
-		pos1, pos2 = homoAlign(pos1, pos2, ids, H1, H2, device)
-
-		# np.save("pos1_after.npy", pos1.cpu().numpy())
-		# np.save("pos2_after.npy", pos2.cpu().numpy())
+		ids = idsAlign(pos1, device)
 
 		img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
 		img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
 
-		drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output)
-
-		# print("Warp output: ", pos1.shape, fmap_pos1.shape, pos2.shape, ids.shape)
-		exit(1)
+		# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output)
+		# exit(1)
 
 		fmap_pos1 = fmap_pos1[:, ids]
 		descriptors1 = descriptors1[:, ids]
 		scores1 = scores1[ids]
 
 		# Skip the pair if not enough GT correspondences are available
-		# print("correspondences number: {}".format(ids.size(0)))
 		if ids.size(0) < 128:
 			continue
 
@@ -109,6 +105,7 @@ def loss_function(
 		fmap_pos2 = torch.round(
 			downscale_positions(pos2, scaling_steps=scaling_steps)
 		).long()
+	
 		descriptors2 = F.normalize(
 			dense_features2[:, fmap_pos2[0, :], fmap_pos2[1, :]],
 			dim=0
@@ -128,11 +125,13 @@ def loss_function(
 		)[0]
 		is_out_of_safe_radius = position_distance > safe_radius
 		distance_matrix = 2 - 2 * (descriptors1.t() @ all_descriptors2)
-		negative_distance2 = torch.min(
-			distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
-			dim=1
-		)[0]
-
+		# negative_distance2 = torch.min(
+		# 	distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
+		# 	dim=1
+		# )[0]
+		
+		negative_distance2 = semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, margin)
+		
 		all_fmap_pos1 = grid_positions(h1, w1, device)
 		position_distance = torch.max(
 			torch.abs(
@@ -143,14 +142,19 @@ def loss_function(
 		)[0]
 		is_out_of_safe_radius = position_distance > safe_radius
 		distance_matrix = 2 - 2 * (descriptors2.t() @ all_descriptors1)
-		negative_distance1 = torch.min(
-			distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
-			dim=1
-		)[0]
+		# negative_distance1 = torch.min(
+		# 	distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
+		# 	dim=1
+		# )[0]
+
+		negative_distance1 = semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, margin)
 
 		diff = positive_distance - torch.min(
 			negative_distance1, negative_distance2
 		)
+
+		# if(batch['batch_idx']%20 == 0):
+		# 	print("positive_distance: {} | negative_distance: {}".format(positive_distance, torch.min(negative_distance1, negative_distance2)))
 
 		scores2 = scores2[fmap_pos2[0, :], fmap_pos2[1, :]]
 
@@ -163,8 +167,9 @@ def loss_function(
 		n_valid_samples += 1
 
 		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
-			drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=False)			
-		exit(1)
+			# drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
+			drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
+
 	if not has_grad:
 		raise NoGradientError
 
@@ -287,7 +292,6 @@ def warp(
 	device = pos1.device
 
 	Z1, pos1, ids = interpolate_depth(pos1, depth1)
-
 	# COLMAP convention
 	u1 = pos1[1, :] + bbox1[1] + .5
 	v1 = pos1[0, :] + bbox1[0] + .5
@@ -322,7 +326,6 @@ def warp(
 
 	ids = ids[inlier_mask]
 	if ids.size(0) == 0:
-		# print("EmptyTensorError exception.")
 		raise EmptyTensorError
 
 	pos2 = pos2[:, inlier_mask]
@@ -389,14 +392,14 @@ def drawTraining(image1, image2, pos1, pos2, batch, idx_in_batch, output, save=F
 	im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
 	im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
 
-	for i in range(0, pos1_aux.shape[1], 5):
+	for i in range(0, pos1_aux.shape[1], 100):
 		im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
-	for i in range(0, pos2_aux.shape[1], 5):
+	for i in range(0, pos2_aux.shape[1], 100):
 		im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
 
 	im3 = cv2.hconcat([im1, im2])
 
-	for i in range(0, pos1_aux.shape[1], 50):
+	for i in range(0, pos1_aux.shape[1], 100):
 		im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 1)
 
 	if(save == True):
@@ -411,8 +414,11 @@ def drawTraining(image1, image2, pos1, pos2, batch, idx_in_batch, output, save=F
 		cv2.waitKey(0)
 
 
-def homoAlign(pos1, pos2, ids, H1, H2, device):
+def homoAlign(pos1, pos2, H1, H2, device):
 	ones = torch.ones(pos1.shape[1]).reshape(1, pos1.shape[1]).to(device)
+
+	pos1[[0, 1]] = pos1[[1, 0]]
+	pos2[[0, 1]] = pos2[[1, 0]]
 
 	pos1Homo = torch.cat((pos1, ones), dim=0)
 	pos2Homo = torch.cat((pos2, ones), dim=0)
@@ -426,18 +432,57 @@ def homoAlign(pos1, pos2, ids, H1, H2, device):
 	pos2Warp = pos2Warp/pos2Warp[2, :]
 	pos2Warp = pos2Warp[0:2, :]
 
+	pos1Warp[[0, 1]] = pos1Warp[[1, 0]]
+	pos2Warp[[0, 1]] = pos2Warp[[1, 0]]
+
 	pos1Pov = []
 	pos2Pov = []
 
 	for i in range(pos1.shape[1]):
-		if(400 > pos1Warp[0, i] > 0 and 400 > pos1Warp[1, i] > 0 and 400 > pos2Warp[0, i] > 0 and 400 > pos2Warp[1, i] > 0):
+		if(380 > pos1Warp[0, i] > 0 and 380 > pos1Warp[1, i] > 0 and 380 > pos2Warp[0, i] > 0 and 380 > pos2Warp[1, i] > 0):
 			pos1Pov.append((pos1Warp[0, i], pos1Warp[1, i]))
 			pos2Pov.append((pos2Warp[0, i], pos2Warp[1, i]))
 
-	pos1Pov = torch.Tensor(pos1Pov)
-	pos2Pov = torch.Tensor(pos2Pov)
+	pos1Pov = torch.Tensor(pos1Pov).to(device)
+	pos2Pov = torch.Tensor(pos2Pov).to(device)
 
 	pos1Pov = torch.transpose(pos1Pov, 0, 1)
 	pos2Pov = torch.transpose(pos2Pov, 0, 1)
 
 	return pos1Pov, pos2Pov
+
+
+def idsAlign(pos1, device):
+	row = pos1[0, :]/8
+	col = pos1[1, :]/8
+
+	ids = []
+
+	for i in range(row.shape[0]):
+		index = (50 * row[i]) + col[i]
+		ids.append(index)
+
+	ids = torch.Tensor(ids).long()
+
+	return ids
+
+
+def semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, margin):
+	negative_distances = distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.
+	
+	negDist = []
+
+	for i, row in enumerate(negative_distances):
+		posDist = positive_distance[i]
+		
+		row = row[(posDist + margin > row) & (row > posDist)]
+		
+		if(row.size(0) == 0):
+			negDist.append(negative_distances[i, 0])
+		else:
+			perm = torch.randperm(row.size(0))
+			negDist.append(row[perm[0]])
+		
+	negDist = torch.Tensor(negDist).to(positive_distance.device)
+
+	return negDist

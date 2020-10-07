@@ -8,8 +8,8 @@ if __name__ == '__main__':
 	imgFile1 = "/home/cair/backup/d2-net/data_gazebo/data5/rgb/rgb000318.jpg"
 	imgFile2 = "/home/cair/backup/d2-net/data_gazebo/data5/rgb/rgb001439.jpg"
 
-	orgSrc = np.load("pos1_before.npy")
-	orgDst = np.load("pos2_before.npy")
+	orgSrc = np.load("data_gazebo/pos1_before.npy")
+	orgDst = np.load("data_gazebo/pos2_before.npy")
 
 	im1 = cv2.imread(imgFile1)
 	im2 = cv2.imread(imgFile2)
@@ -24,12 +24,12 @@ if __name__ == '__main__':
 	for i in range(0, orgSrc.shape[1], 50):
 		im4 = cv2.line(im4, (int(orgSrc[1, i]), int(orgSrc[0, i])), (int(orgDst[1, i]) +  im1.shape[1], int(orgDst[0, i])), (0, 255, 0), 1)
 	
-	# cv2.imshow("Image_lines", im4)
-	# cv2.waitKey(0)
+	cv2.imshow("Image_lines", im4)
+	cv2.waitKey(0)
 
 
 	pts_floor = np.array([[190,210],[455,210],[633,475],[0,475]])
-	pts_correct = np.array([[0, 0], [399, 0], [399, 399], [0, 399]])
+	pts_correct = np.array([[0, 0], [400, 0], [400, 400], [0, 400]])
 	homographyMat, status = cv2.findHomography(pts_floor, pts_correct)
 	
 	startPts = np.array([[0, 0], [400, 0], [400, 400], [0, 400]])
@@ -40,6 +40,10 @@ if __name__ == '__main__':
 	img2 = cv2.warpPerspective(cv2.imread(imgFile2), np.dot(homoFl, homographyMat), (400, 400))
 
 	ones = np.ones((1, orgSrc.shape[1]))
+
+	orgSrc[[1, 0]] = orgSrc[[0, 1]]
+	orgDst[[1, 0]] = orgDst[[0, 1]]
+
 	srcHomo = np.vstack((orgSrc, ones))
 	dstHomo = np.vstack((orgDst, ones))
 
@@ -52,6 +56,9 @@ if __name__ == '__main__':
 	warpSrc = srcWarp[0:2, :]
 	warpDst = dstWarp[0:2, :]
 
+	warpSrc[[1, 0]] = warpSrc[[0, 1]]
+	warpDst[[1, 0]] = warpDst[[0, 1]]
+
 	srcPov = []
 	dstPov = []
 	for i in range(warpSrc.shape[1]):
@@ -62,14 +69,14 @@ if __name__ == '__main__':
 	srcPov = np.asarray(srcPov).T
 	dstPov = np.asarray(dstPov).T
 	
-	for i in range(0, srcPov.shape[1], 100):
+	for i in range(0, srcPov.shape[1], 80):
 		img1 = cv2.circle(img1, (int(srcPov[1, i]), int(srcPov[0, i])), 1, (0, 0, 255), 2)
-	for i in range(0, dstPov.shape[1], 100):
+	for i in range(0, dstPov.shape[1], 80):
 		img2 = cv2.circle(img2, (int(dstPov[1, i]), int(dstPov[0, i])), 1, (0, 0, 255), 2)
 
 	im4 = cv2.hconcat([img1, img2])
 
-	for i in range(0, srcPov.shape[1], 100):
+	for i in range(0, srcPov.shape[1], 80):
 		im4 = cv2.line(im4, (int(srcPov[1, i]), int(srcPov[0, i])), (int(dstPov[1, i]) +  img1.shape[1], int(dstPov[0, i])), (0, 255, 0), 1)
 
 	cv2.imshow("Image_lines", im4)

@@ -49,9 +49,7 @@ def imshow_image(image, preprocessing=None):
 
 
 def grid_positions(h, w, device, matrix=False):
-    lines = torch.arange(
-        0, h, device=device
-    ).view(-1, 1).float().repeat(1, w)
+    lines = torch.arange(0, h, device=device).view(-1, 1).float().repeat(1, w)
     columns = torch.arange(
         0, w, device=device
     ).view(1, -1).float().repeat(h, 1)

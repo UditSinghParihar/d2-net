@@ -16,3 +16,4 @@ train_corr/
 data/
 data_gazebo/
 train_corr*/
+data_gazebo_floor/

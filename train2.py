@@ -93,7 +93,7 @@ parser.add_argument(
 parser.set_defaults(use_validation=False)
 
 parser.add_argument(
-	'--log_interval', type=int, default=250,
+	'--log_interval', type=int, default=100,
 	help='loss logging interval'
 )
 
@@ -161,13 +161,6 @@ if args.use_validation:
 		batch_size=args.batch_size,
 		num_workers=args.num_workers
 	)
-
-# training_dataset = MegaDepthDataset(
-#     scene_list_path='megadepth_utils/train_scenes.txt',
-#     scene_info_path=args.scene_info_path,
-#     base_path=args.dataset_path,
-#     preprocessing=args.preprocessing
-# )
 
 # training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
 training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)

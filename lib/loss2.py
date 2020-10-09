@@ -77,21 +77,20 @@ def loss_function(
 		except EmptyTensorError:
 			continue
 		
-		H1 = output['H1'][idx_in_batch] 
-		H2 = output['H2'][idx_in_batch]
+		# H1 = output['H1'][idx_in_batch] 
+		# H2 = output['H2'][idx_in_batch]
 
-		try:
-			pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
-		except IndexError:
-			continue
+		# try:
+		# 	pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
+		# except IndexError:
+		# 	continue
 
-		ids = idsAlign(pos1, device)
+		# ids = idsAlign(pos1, device)
 
-		img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
-		img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
+		# img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
+		# img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
 
 		# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output)
-		# exit(1)
 
 		fmap_pos1 = fmap_pos1[:, ids]
 		descriptors1 = descriptors1[:, ids]
@@ -110,10 +109,12 @@ def loss_function(
 			dense_features2[:, fmap_pos2[0, :], fmap_pos2[1, :]],
 			dim=0
 		)
+	
+		# positive_distance = 2 - 2 * (
+		# 	descriptors1.t().unsqueeze(1) @ descriptors2.t().unsqueeze(2)
+		# ).squeeze()
 
-		positive_distance = 2 - 2 * (
-			descriptors1.t().unsqueeze(1) @ descriptors2.t().unsqueeze(2)
-		).squeeze()
+		positive_distance = getPositiveDistance(descriptors1, descriptors2)
 
 		all_fmap_pos2 = grid_positions(h2, w2, device)
 		position_distance = torch.max(
@@ -124,13 +125,16 @@ def loss_function(
 			dim=0
 		)[0]
 		is_out_of_safe_radius = position_distance > safe_radius
-		distance_matrix = 2 - 2 * (descriptors1.t() @ all_descriptors2)
-		# negative_distance2 = torch.min(
-		# 	distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
-		# 	dim=1
-		# )[0]
 		
-		negative_distance2 = semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, margin)
+		# distance_matrix = 2 - 2 * (descriptors1.t() @ all_descriptors2)
+		distance_matrix = getDistanceMatrix(descriptors1, all_descriptors2)
+
+		negative_distance2 = torch.min(
+			distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
+			dim=1
+		)[0]
+		
+		# negative_distance2 = semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, margin)
 		
 		all_fmap_pos1 = grid_positions(h1, w1, device)
 		position_distance = torch.max(
@@ -141,20 +145,20 @@ def loss_function(
 			dim=0
 		)[0]
 		is_out_of_safe_radius = position_distance > safe_radius
-		distance_matrix = 2 - 2 * (descriptors2.t() @ all_descriptors1)
-		# negative_distance1 = torch.min(
-		# 	distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
-		# 	dim=1
-		# )[0]
+		
+		# distance_matrix = 2 - 2 * (descriptors2.t() @ all_descriptors1)
+		distance_matrix = getDistanceMatrix(descriptors2, all_descriptors1)
+		
+		negative_distance1 = torch.min(
+			distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
+			dim=1
+		)[0]
 
-		negative_distance1 = semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, margin)
+		# negative_distance1 = semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, margin)
 
 		diff = positive_distance - torch.min(
 			negative_distance1, negative_distance2
 		)
-
-		# if(batch['batch_idx']%20 == 0):
-		# 	print("positive_distance: {} | negative_distance: {}".format(positive_distance, torch.min(negative_distance1, negative_distance2)))
 
 		scores2 = scores2[fmap_pos2[0, :], fmap_pos2[1, :]]
 
@@ -167,8 +171,8 @@ def loss_function(
 		n_valid_samples += 1
 
 		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
-			# drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
-			drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
+			drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
+			# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
 
 	if not has_grad:
 		raise NoGradientError
@@ -486,3 +490,17 @@ def semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, marg
 	negDist = torch.Tensor(negDist).to(positive_distance.device)
 
 	return negDist
+
+
+def getPositiveDistance(descriptors1, descriptors2):
+	positive_distance = torch.norm(descriptors1 - descriptors2, dim=0)
+
+	return positive_distance
+
+
+def getDistanceMatrix(descriptors1, all_descriptors2):
+	d1 = descriptors1.t().unsqueeze(0)
+	all_d2 = all_descriptors2.t().unsqueeze(0)
+	distance_matrix = torch.cdist(d1, all_d2, p=2).squeeze()
+
+	return distance_matrix

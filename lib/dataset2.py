@@ -16,6 +16,7 @@ class LabDataset(Dataset):
 		self.poses = poses
 		self.intrinsics = intrinsics
 		self.preprocessing = preprocessing
+		self.dataset = []
 		
 
 	def getImageFiles(self):
@@ -51,7 +52,7 @@ class LabDataset(Dataset):
 	def build_dataset(self):
 		print("Building Dataset.")
 
-		self.dataset = []
+		# self.dataset = []
 
 		imgFiles = self.getImageFiles()
 		poses1, poses2 = self.getPoses()
@@ -130,7 +131,7 @@ class LabDataset(Dataset):
 
 	 
 if __name__ == '__main__':
-	rootDir = "/scratch/udit/"
+	# rootDir = "/scratch/udit/"
 
 	imgPairs = argv[1]
 	poses = argv[2]

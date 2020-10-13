@@ -16,6 +16,7 @@ class GazeboDataset(Dataset):
 		self.poses = poses
 		self.intrinsics = intrinsics
 		self.preprocessing = preprocessing
+		self.dataset = []
 		
 
 	def getImageFiles(self):
@@ -51,15 +52,15 @@ class GazeboDataset(Dataset):
 	def build_dataset(self):
 		print("Building Dataset.")
 
-		self.dataset = []
+		# self.dataset = []
 
 		imgFiles = self.getImageFiles()
 		poses1, poses2 = self.getPoses()
 		K = self.getIntrinsics()
 		bbox = np.array([0.0, 0.0])
 
-		# for i in range(len(imgFiles)):
-		for i in range(0, 1):
+		for i in range(len(imgFiles)):
+		# for i in range(0, 1):
 			rgbFile1, depthFile1, rgbFile2, depthFile2 = imgFiles[i]
 			
 			rgbFile1 = os.path.join(self.rootDir, rgbFile1)

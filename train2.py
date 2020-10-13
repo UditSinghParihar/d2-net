@@ -17,8 +17,8 @@ from tqdm import tqdm
 import warnings
 
 # from lib.dataset import MegaDepthDataset
-# from lib.dataset2 import LabDataset
-from lib.datasetGazebo import GazeboDataset
+from lib.dataset2 import LabDataset
+# from lib.datasetGazebo import GazeboDataset
 from lib.exceptions import NoGradientError
 from lib.loss2 import loss_function
 from lib.model2 import D2Net, D2NetAlign
@@ -162,13 +162,15 @@ if args.use_validation:
 		num_workers=args.num_workers
 	)
 
-# training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
-training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+# training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+training_dataset.build_dataset()
 
 training_dataloader = DataLoader(
 	training_dataset,
 	batch_size=args.batch_size,
-	num_workers=args.num_workers
+	num_workers=args.num_workers,
+	shuffle=True
 )
 
 
@@ -245,7 +247,7 @@ log_file = open(args.log_file, 'a+')
 train_loss_history = []
 validation_loss_history = []
 if args.use_validation:
-	validation_dataset.build_dataset()
+	# validation_dataset.build_dataset()
 	min_validation_loss = process_epoch(
 		0,
 		model, loss_function, optimizer, validation_dataloader, device,
@@ -256,7 +258,7 @@ if args.use_validation:
 # Start the training
 for epoch_idx in range(1, args.num_epochs + 1):
 	# Process epoch
-	training_dataset.build_dataset()
+	# training_dataset.build_dataset()
 	train_loss_history.append(
 		process_epoch(
 			epoch_idx,

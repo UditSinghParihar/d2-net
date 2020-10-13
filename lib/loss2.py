@@ -19,7 +19,7 @@ from lib.exceptions import NoGradientError, EmptyTensorError
 import torchgeometry as tgm
 
 
-# matplotlib.use('Agg')
+matplotlib.use('Agg')
 
 
 def loss_function(
@@ -110,11 +110,11 @@ def loss_function(
 			dim=0
 		)
 	
-		# positive_distance = 2 - 2 * (
-		# 	descriptors1.t().unsqueeze(1) @ descriptors2.t().unsqueeze(2)
-		# ).squeeze()
+		positive_distance = 2 - 2 * (
+			descriptors1.t().unsqueeze(1) @ descriptors2.t().unsqueeze(2)
+		).squeeze()
 
-		positive_distance = getPositiveDistance(descriptors1, descriptors2)
+		# positive_distance = getPositiveDistance(descriptors1, descriptors2)
 
 		all_fmap_pos2 = grid_positions(h2, w2, device)
 		position_distance = torch.max(
@@ -126,8 +126,8 @@ def loss_function(
 		)[0]
 		is_out_of_safe_radius = position_distance > safe_radius
 		
-		# distance_matrix = 2 - 2 * (descriptors1.t() @ all_descriptors2)
-		distance_matrix = getDistanceMatrix(descriptors1, all_descriptors2)
+		distance_matrix = 2 - 2 * (descriptors1.t() @ all_descriptors2)
+		# distance_matrix = getDistanceMatrix(descriptors1, all_descriptors2)
 
 		negative_distance2 = torch.min(
 			distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
@@ -146,8 +146,8 @@ def loss_function(
 		)[0]
 		is_out_of_safe_radius = position_distance > safe_radius
 		
-		# distance_matrix = 2 - 2 * (descriptors2.t() @ all_descriptors1)
-		distance_matrix = getDistanceMatrix(descriptors2, all_descriptors1)
+		distance_matrix = 2 - 2 * (descriptors2.t() @ all_descriptors1)
+		# distance_matrix = getDistanceMatrix(descriptors2, all_descriptors1)
 		
 		negative_distance1 = torch.min(
 			distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,

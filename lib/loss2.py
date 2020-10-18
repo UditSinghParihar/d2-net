@@ -77,18 +77,18 @@ def loss_function(
 		except EmptyTensorError:
 			continue
 		
-		# H1 = output['H1'][idx_in_batch] 
-		# H2 = output['H2'][idx_in_batch]
+		H1 = output['H1'][idx_in_batch] 
+		H2 = output['H2'][idx_in_batch]
 
-		# try:
-		# 	pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
-		# except IndexError:
-		# 	continue
+		try:
+			pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
+		except IndexError:
+			continue
 
-		# ids = idsAlign(pos1, device)
+		ids = idsAlign(pos1, device)
 
-		# img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
-		# img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
+		img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
+		img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
 
 		# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output)
 
@@ -171,8 +171,8 @@ def loss_function(
 		n_valid_samples += 1
 
 		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
-			drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
-			# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
+			# drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
+			drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
 
 	if not has_grad:
 		raise NoGradientError

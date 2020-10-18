@@ -17,8 +17,8 @@ from tqdm import tqdm
 import warnings
 
 # from lib.dataset import MegaDepthDataset
-from lib.dataset2 import LabDataset
-# from lib.datasetGazebo import GazeboDataset
+# from lib.dataset2 import LabDataset
+from lib.datasetGazebo import GazeboDataset
 from lib.exceptions import NoGradientError
 from lib.loss2 import loss_function
 from lib.model2 import D2Net, D2NetAlign
@@ -162,8 +162,8 @@ if args.use_validation:
 		num_workers=args.num_workers
 	)
 
-training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
-# training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+# training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
 training_dataset.build_dataset()
 
 training_dataloader = DataLoader(

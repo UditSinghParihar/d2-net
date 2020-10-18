@@ -19,6 +19,9 @@
 5. Warping function:  
 	1. `python testWarpTorch.py`  
 
+6. Downloading ScanNet:
+	1. `wget -r -A .sens -I /ScanNet/v2/scans/scene000*,/ScanNet/v2/scans/scene001*,/ScanNet/v2/scans/scene002*,/ScanNet/v2/scans/scene003*,/ScanNet/v2/scans/scene004* -nH --cut-dirs=3 --no-parent --reject="index.html*" http://datasets.rrc.iiit.ac.in/ScanNet/v2/scans/`
+
 # D2-Net: A Trainable CNN for Joint Detection and Description of Local Features
 
 This repository contains the implementation of the following paper:

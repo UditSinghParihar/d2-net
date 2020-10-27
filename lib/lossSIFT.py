@@ -19,11 +19,11 @@ from lib.exceptions import NoGradientError, EmptyTensorError
 import torchgeometry as tgm
 
 
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 
 def loss_function(
-		model, batch, device, margin=1, safe_radius=4, scaling_steps=3, plot=False
+		model, batch, device, margin=0.3, safe_radius=4, scaling_steps=3, plot=False
 ):
 	output = model({
 		'image1': batch['image1'].to(device),
@@ -68,6 +68,23 @@ def loss_function(
 		fmap_pos1Orig = grid_positions(hOrig, wOrig, device)
 		pos1 = upscale_positions(fmap_pos1Orig, scaling_steps=scaling_steps)
 
+		# SIFT Feature Detection
+		
+		imgNp1 = imshow_image(
+						batch['image1'][idx_in_batch].cpu().numpy(),
+						preprocessing=batch['preprocessing']
+					)
+		imgNp1 = cv2.cvtColor(imgNp1, cv2.COLOR_BGR2RGB)
+		surf = cv2.xfeatures2d.SIFT_create(300)
+		# surf = cv2.xfeatures2d.SURF_create(300)
+		kp = surf.detect(imgNp1, None)
+		keyP = [(kp[i].pt) for i in range(len(kp))]
+		keyP = np.asarray(keyP).T
+		keyP[[0, 1]] = keyP[[1, 0]]
+		keyP = np.floor(keyP) + 0.5
+
+		pos1 = torch.from_numpy(keyP).to(pos1.device).float()
+		
 		try:
 			pos1, pos2, ids = warp(
 				pos1,
@@ -77,6 +94,39 @@ def loss_function(
 		except EmptyTensorError:
 			continue
 
+		ids = idsAlign(pos1, device, h1, w1)
+
+		# cv2.drawKeypoints(imgNp1, kp, imgNp1)
+		# cv2.imshow('Keypoints', imgNp1)
+		# cv2.waitKey(0)
+
+		# drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=False)
+		
+		# exit(1)
+
+		# # SIFT Feature Detection
+		
+		# imgNp1 = imshow_image(
+		# 				batch['image1'][idx_in_batch].cpu().numpy(),
+		# 				preprocessing=batch['preprocessing']
+		# 			)
+		# imgNp1 = cv2.cvtColor(imgNp1, cv2.COLOR_BGR2RGB)
+		# surf = cv2.xfeatures2d.SURF_create(150)
+		# kp = surf.detect(imgNp1, None)
+		# keyP = [(kp[i].pt) for i in range(len(kp))]
+		# keyP = np.asarray(keyP).T
+		# keyP[[0, 1]] = keyP[[1, 0]]
+		# keyP = np.floor(keyP) + 0.5
+
+		# pos1, pos2, ids = keyPointCorr(pos1, pos2, ids, keyP)
+
+		# cv2.drawKeypoints(imgNp1, kp, imgNp1)
+		# cv2.imshow('Keypoints', imgNp1)
+		# cv2.waitKey(0)
+		
+
+		# Top view homography adjustment
+
 		# H1 = output['H1'][idx_in_batch] 
 		# H2 = output['H2'][idx_in_batch]
 
@@ -85,7 +135,7 @@ def loss_function(
 		# except IndexError:
 		# 	continue
 
-		# ids = idsAlign(pos1, device)
+		# ids = idsAlign(pos1, device, h1, w1)
 
 		# img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
 		# img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
@@ -396,14 +446,14 @@ def drawTraining(image1, image2, pos1, pos2, batch, idx_in_batch, output, save=F
 	im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
 	im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
 
-	for i in range(0, pos1_aux.shape[1], 100):
+	for i in range(0, pos1_aux.shape[1], 1):
 		im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
-	for i in range(0, pos2_aux.shape[1], 100):
+	for i in range(0, pos2_aux.shape[1], 1):
 		im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
 
 	im3 = cv2.hconcat([im1, im2])
 
-	for i in range(0, pos1_aux.shape[1], 100):
+	for i in range(0, pos1_aux.shape[1], 1):
 		im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 1)
 
 	if(save == True):
@@ -456,17 +506,17 @@ def homoAlign(pos1, pos2, H1, H2, device):
 	return pos1Pov, pos2Pov
 
 
-def idsAlign(pos1, device):
+def idsAlign(pos1, device, h1, w1):
 	row = pos1[0, :]/8
 	col = pos1[1, :]/8
 
 	ids = []
 
 	for i in range(row.shape[0]):
-		index = (50 * row[i]) + col[i]
+		index = (h1 * row[i]) + col[i]
 		ids.append(index)
 
-	ids = torch.Tensor(ids).long()
+	ids = torch.round(torch.Tensor(ids)).long()
 
 	return ids
 
@@ -504,3 +554,24 @@ def getDistanceMatrix(descriptors1, all_descriptors2):
 	distance_matrix = torch.cdist(d1, all_d2, p=2).squeeze()
 
 	return distance_matrix
+
+
+# def keyPointCorr(pos1, pos2, ids, keyP):
+# 	keyP = torch.from_numpy(keyP).to(pos1.device)
+# 	# print("Keypoint: ", keyP.shape)
+# 	print("Pos1: {} Pos2: {} Id: {}".format(pos1.shape, pos2.shape, ids.shape))
+# 	# print(pos1[0, 0], pos1[1, 0])
+
+# 	print(torch.unique(pos1[0, :]))
+# 	print(torch.unique(pos1[1, :]))
+# 	# print(keyP[0, 0], keyP[1, 0])
+
+# 	newIds = []
+# 	for col in range(keyP.shape[1]):
+# 		pass
+# 		# if((keyP[0, col] in pos1[0, :]) and (keyP[1, col] in pos1[1, :])):
+# 		# 	print("True", col)
+# 		# 	newIds.append(col)
+
+# 	return None, None, None
+

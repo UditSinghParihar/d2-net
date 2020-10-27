@@ -210,17 +210,17 @@ class D2NetAlign(nn.Module):
 	def forward(self, batch):
 		b = batch['image1'].size(0)
 		
-		img_warp1, img_warp2, H1, H2 = self.alignment(batch['image1'], batch['image2'])
+		# img_warp1, img_warp2, H1, H2 = self.alignment(batch['image1'], batch['image2'])
 
-		dense_features = self.dense_feature_extraction(
-			torch.cat([img_warp1, img_warp2], dim=0)
-		)
+		# dense_features = self.dense_feature_extraction(
+		# 	torch.cat([img_warp1, img_warp2], dim=0)
+		# )
 
 		# self.display(img_warp1, img_warp2)
 
-		# dense_features = self.dense_feature_extraction(
-		# 	torch.cat([batch['image1'], batch['image2']], dim=0)
-		# )
+		dense_features = self.dense_feature_extraction(
+			torch.cat([batch['image1'], batch['image2']], dim=0)
+		)
 
 		scores = self.detection(dense_features)
 
@@ -235,6 +235,6 @@ class D2NetAlign(nn.Module):
 			'scores1': scores1,
 			'dense_features2': dense_features2,
 			'scores2': scores2,
-			'H1': H1,
-			'H2': H2 
+			# 'H1': H1,
+			# 'H2': H2 
 		}

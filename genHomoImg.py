@@ -10,14 +10,16 @@ def getHomo(imgFile, outFile):
 	im1 = cv2.imread(imgFile)
 
 	# pts_floor = np.array([[180, 299], [460, 290], [585, 443], [66, 462]]) # p3dx
-	pts_floor = np.array([[80, 270], [500, 270], [585, 443], [66, 462]]) # p3dx_long_homo
+	# pts_floor = np.array([[80, 270], [500, 270], [585, 443], [66, 462]]) # p3dx_long_homo
+	pts_floor = np.array([[190,210],[455,210],[633,475],[0,475]]) # gazebo
+
 	pts_correct = np.array([[0, 0], [399, 0], [399, 399], [0, 399]])
 
 	homographyMat, status = cv2.findHomography(pts_floor, pts_correct)
 	img1 = cv2.warpPerspective(im1, homographyMat, (480, 300))
-
-	# cv2.imwrite(outFile, img1)
-	return im1
+	
+	cv2.imwrite(outFile, img1)
+	return img1
 
 
 def natural_sort(l): 
@@ -39,17 +41,17 @@ if __name__ == '__main__':
 
 	imgOld = getHomo(rgbDir + rgbSort[588], outDir + "homo{:04d}.jpg".format(588))
 	
-	for i in range(589, len(rgbSort), 5):
+	for i in range(589, len(rgbSort), 2):
 		imgNew = getHomo(rgbDir + rgbSort[i], outDir + "homo{:04d}.jpg".format(i))
 
 		sift = cv2.xfeatures2d_SURF.create(20)
-		kp1, des1 = sift.detectAndCompute(imgNew,None)
-		kp2, des2 = sift.detectAndCompute(imgOld,None)
+		kp1, des1 = sift.detectAndCompute(imgOld,None)
+		kp2, des2 = sift.detectAndCompute(imgNew,None)
 		FLANN_INDEX_KDTREE = 0
 		index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
 		search_params = dict(checks = 50)
 		flann = cv2.FlannBasedMatcher(index_params, search_params)
-		matches = flann.knnMatch(des1,des2,k=2)
+		matches = flann.knnMatch(des1, des2,k=2)
 		good = []
 		for m,n in matches:
 			if m.distance < 0.7*n.distance:
@@ -59,10 +61,10 @@ if __name__ == '__main__':
 		dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 		H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
 
-		dst = cv2.warpPerspective(imgNew, H, (imgNew.shape[1]/2 + imgOld.shape[1], imgNew.shape[0]/2 + imgOld.shape[0]))
+		dst = cv2.warpPerspective(imgOld, H, (imgNew.shape[1]/8 + imgOld.shape[1], imgNew.shape[0]/4 + imgOld.shape[0]))
 		cv2.imshow("Final0", dst)
 		
-		dst[0:imgOld.shape[0] , 0:imgOld.shape[1]] = imgOld
+		dst[0:imgNew.shape[0] , 0:imgNew.shape[1]] = imgNew
 		cv2.imshow("Final", dst)
 		cv2.waitKey(0)
 

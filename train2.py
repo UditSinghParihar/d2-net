@@ -20,7 +20,10 @@ import warnings
 # from lib.dataset2 import LabDataset
 from lib.datasetGazebo import GazeboDataset
 from lib.exceptions import NoGradientError
-from lib.loss2 import loss_function
+
+# from lib.loss2 import loss_function
+from lib.lossSIFT import loss_function
+
 from lib.model2 import D2Net, D2NetAlign
 
 

@@ -32,14 +32,14 @@ parser.add_argument(
 	'--preprocessing', type=str, default='caffe',
 	help='image preprocessing (caffe or torch)'
 )
-# parser.add_argument(
-# 	'--model_file', type=str, default='models/d2_tf.pth',
-# 	help='path to the full model'
-# )
 parser.add_argument(
-	'--model_file', type=str, default='checkpoints/d2.08.pth',
+	'--model_file', type=str, default='models/d2_tf.pth',
 	help='path to the full model'
 )
+# parser.add_argument(
+# 	'--model_file', type=str, default='checkpoints/d2.08.pth',
+# 	help='path to the full model'
+# )
 parser.add_argument(
 	'--max_edge', type=int, default=1600,
 	help='maximum image size at network input'
@@ -138,7 +138,7 @@ def	drawMatches(file1, file2, feat1, feat2):
 	model, inliers = ransac(
 		(keypoints_left, keypoints_right),
 		ProjectiveTransform, min_samples=4,
-		residual_threshold=4, max_trials=10000
+		residual_threshold=8, max_trials=10000
 	)
 	n_inliers = np.sum(inliers)
 	print('Number of inliers: %d.' % n_inliers)

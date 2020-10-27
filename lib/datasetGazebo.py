@@ -59,8 +59,8 @@ class GazeboDataset(Dataset):
 		K = self.getIntrinsics()
 		bbox = np.array([0.0, 0.0])
 
-		# for i in range(len(imgFiles)):
-		for i in range(0, 1):
+		for i in range(len(imgFiles)):
+		# for i in range(0, 1):
 			rgbFile1, depthFile1, rgbFile2, depthFile2 = imgFiles[i]
 			
 			rgbFile1 = os.path.join(self.rootDir, rgbFile1)

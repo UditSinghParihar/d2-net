@@ -19,11 +19,11 @@ from lib.exceptions import NoGradientError, EmptyTensorError
 import torchgeometry as tgm
 
 
-# matplotlib.use('Agg')
+matplotlib.use('Agg')
 
 
 def loss_function(
-		model, batch, device, margin=0.3, safe_radius=4, scaling_steps=3, plot=False
+		model, batch, device, margin=1, safe_radius=4, scaling_steps=3, plot=False
 ):
 	output = model({
 		'image1': batch['image1'].to(device),
@@ -75,8 +75,10 @@ def loss_function(
 						preprocessing=batch['preprocessing']
 					)
 		imgNp1 = cv2.cvtColor(imgNp1, cv2.COLOR_BGR2RGB)
-		surf = cv2.xfeatures2d.SIFT_create(300)
-		# surf = cv2.xfeatures2d.SURF_create(300)
+		# surf = cv2.xfeatures2d.SIFT_create(100)
+		surf = cv2.xfeatures2d.SURF_create(80)
+		# surf = cv2.ORB_create()
+
 		kp = surf.detect(imgNp1, None)
 		keyP = [(kp[i].pt) for i in range(len(kp))]
 		keyP = np.asarray(keyP).T
@@ -103,27 +105,7 @@ def loss_function(
 		# drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=False)
 		
 		# exit(1)
-
-		# # SIFT Feature Detection
-		
-		# imgNp1 = imshow_image(
-		# 				batch['image1'][idx_in_batch].cpu().numpy(),
-		# 				preprocessing=batch['preprocessing']
-		# 			)
-		# imgNp1 = cv2.cvtColor(imgNp1, cv2.COLOR_BGR2RGB)
-		# surf = cv2.xfeatures2d.SURF_create(150)
-		# kp = surf.detect(imgNp1, None)
-		# keyP = [(kp[i].pt) for i in range(len(kp))]
-		# keyP = np.asarray(keyP).T
-		# keyP[[0, 1]] = keyP[[1, 0]]
-		# keyP = np.floor(keyP) + 0.5
-
-		# pos1, pos2, ids = keyPointCorr(pos1, pos2, ids, keyP)
-
-		# cv2.drawKeypoints(imgNp1, kp, imgNp1)
-		# cv2.imshow('Keypoints', imgNp1)
-		# cv2.waitKey(0)
-		
+	
 
 		# Top view homography adjustment
 
@@ -148,6 +130,7 @@ def loss_function(
 
 		# Skip the pair if not enough GT correspondences are available
 		if ids.size(0) < 128:
+			print(ids.size(0))
 			continue
 
 		# Descriptors at the corresponding positions
@@ -221,6 +204,7 @@ def loss_function(
 		n_valid_samples += 1
 
 		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
+			print("Inside plot.")
 			drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
 			# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
 

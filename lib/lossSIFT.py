@@ -75,8 +75,8 @@ def loss_function(
 						preprocessing=batch['preprocessing']
 					)
 		imgNp1 = cv2.cvtColor(imgNp1, cv2.COLOR_BGR2RGB)
-		# surf = cv2.xfeatures2d.SIFT_create(100)
-		surf = cv2.xfeatures2d.SURF_create(80)
+		# surf = cv2.xfeatures2d.SIFT_create()
+		surf = cv2.xfeatures2d.SURF_create(100)
 		# surf = cv2.ORB_create()
 
 		kp = surf.detect(imgNp1, None)
@@ -109,20 +109,21 @@ def loss_function(
 
 		# Top view homography adjustment
 
-		# H1 = output['H1'][idx_in_batch] 
-		# H2 = output['H2'][idx_in_batch]
+		H1 = output['H1'][idx_in_batch] 
+		H2 = output['H2'][idx_in_batch]
 
-		# try:
-		# 	pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
-		# except IndexError:
-		# 	continue
+		try:
+			pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
+		except IndexError:
+			continue
 
-		# ids = idsAlign(pos1, device, h1, w1)
+		ids = idsAlign(pos1, device, h1, w1)
 
-		# img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
-		# img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
+		img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
+		img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
 
 		# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output)
+		# exit(1)
 
 		fmap_pos1 = fmap_pos1[:, ids]
 		descriptors1 = descriptors1[:, ids]
@@ -204,9 +205,8 @@ def loss_function(
 		n_valid_samples += 1
 
 		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
-			print("Inside plot.")
-			drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
-			# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
+			# drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
+			drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
 
 	if not has_grad:
 		raise NoGradientError
@@ -491,8 +491,11 @@ def homoAlign(pos1, pos2, H1, H2, device):
 
 
 def idsAlign(pos1, device, h1, w1):
-	row = pos1[0, :]/8
-	col = pos1[1, :]/8
+	# row = pos1[0, :]/8
+	# col = pos1[1, :]/8
+	pos1D = downscale_positions(pos1, scaling_steps=3)
+	row = pos1D[0, :]
+	col = pos1D[1, :]
 
 	ids = []
 
@@ -526,36 +529,15 @@ def semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, marg
 	return negDist
 
 
-def getPositiveDistance(descriptors1, descriptors2):
-	positive_distance = torch.norm(descriptors1 - descriptors2, dim=0)
+# def getPositiveDistance(descriptors1, descriptors2):
+# 	positive_distance = torch.norm(descriptors1 - descriptors2, dim=0)
 
-	return positive_distance
-
-
-def getDistanceMatrix(descriptors1, all_descriptors2):
-	d1 = descriptors1.t().unsqueeze(0)
-	all_d2 = all_descriptors2.t().unsqueeze(0)
-	distance_matrix = torch.cdist(d1, all_d2, p=2).squeeze()
-
-	return distance_matrix
+# 	return positive_distance
 
 
-# def keyPointCorr(pos1, pos2, ids, keyP):
-# 	keyP = torch.from_numpy(keyP).to(pos1.device)
-# 	# print("Keypoint: ", keyP.shape)
-# 	print("Pos1: {} Pos2: {} Id: {}".format(pos1.shape, pos2.shape, ids.shape))
-# 	# print(pos1[0, 0], pos1[1, 0])
+# def getDistanceMatrix(descriptors1, all_descriptors2):
+# 	d1 = descriptors1.t().unsqueeze(0)
+# 	all_d2 = all_descriptors2.t().unsqueeze(0)
+# 	distance_matrix = torch.cdist(d1, all_d2, p=2).squeeze()
 
-# 	print(torch.unique(pos1[0, :]))
-# 	print(torch.unique(pos1[1, :]))
-# 	# print(keyP[0, 0], keyP[1, 0])
-
-# 	newIds = []
-# 	for col in range(keyP.shape[1]):
-# 		pass
-# 		# if((keyP[0, col] in pos1[0, :]) and (keyP[1, col] in pos1[1, :])):
-# 		# 	print("True", col)
-# 		# 	newIds.append(col)
-
-# 	return None, None, None
-
+# 	return distance_matrix

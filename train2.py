@@ -18,11 +18,15 @@ import warnings
 
 # from lib.dataset import MegaDepthDataset
 # from lib.dataset2 import LabDataset
-from lib.datasetGazebo import GazeboDataset
-from lib.exceptions import NoGradientError
+# from lib.datasetGazebo import GazeboDataset
+from lib.datasetPhotoTourism import PhotoTourism
 
-from lib.loss2 import loss_function
+
+# from lib.loss2 import loss_function
 # from lib.lossSIFT import loss_function
+from lib.lossPhotoTourism import loss_function
+
+from lib.exceptions import NoGradientError
 
 from lib.model2 import D2Net, D2NetAlign
 
@@ -41,15 +45,15 @@ np.random.seed(1)
 parser = argparse.ArgumentParser(description='Training script')
 
 parser.add_argument(
-	'--imgPairs', type=str, required=True, 
+	'--imgPairs', type=str, required=False, 
 	help='path to opposite image pairs'
 )
 parser.add_argument(
-	'--poses', type=str, required=True,
+	'--poses', type=str, required=False,
 	help='path to poses2W'
 )
 parser.add_argument(
-	'--K', type=str, required=True,
+	'--K', type=str, required=False,
 	help='path to calibration matrix'
 )
 
@@ -96,7 +100,7 @@ parser.add_argument(
 parser.set_defaults(use_validation=False)
 
 parser.add_argument(
-	'--log_interval', type=int, default=100,
+	'--log_interval', type=int, default=50,
 	help='loss logging interval'
 )
 
@@ -166,7 +170,9 @@ if args.use_validation:
 	)
 
 # training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
-training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+# training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
+training_dataset = PhotoTourism(args.dataset_path, args.preprocessing)
+
 training_dataset.build_dataset()
 
 training_dataloader = DataLoader(
@@ -229,7 +235,7 @@ def process_epoch(
 	))
 	log_file.flush()
 
-	scheduler.step()
+	# scheduler.step()
 
 	return np.mean(epoch_losses)
 

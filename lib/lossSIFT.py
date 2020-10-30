@@ -503,7 +503,7 @@ def idsAlign(pos1, device, h1, w1):
 		index = (h1 * row[i]) + col[i]
 		ids.append(index)
 
-	ids = torch.round(torch.Tensor(ids)).long()
+	ids = torch.round(torch.Tensor(ids)).long().to(device)
 
 	return ids
 
@@ -527,17 +527,3 @@ def semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, marg
 	negDist = torch.Tensor(negDist).to(positive_distance.device)
 
 	return negDist
-
-
-# def getPositiveDistance(descriptors1, descriptors2):
-# 	positive_distance = torch.norm(descriptors1 - descriptors2, dim=0)
-
-# 	return positive_distance
-
-
-# def getDistanceMatrix(descriptors1, all_descriptors2):
-# 	d1 = descriptors1.t().unsqueeze(0)
-# 	all_d2 = all_descriptors2.t().unsqueeze(0)
-# 	distance_matrix = torch.cdist(d1, all_d2, p=2).squeeze()
-
-# 	return distance_matrix

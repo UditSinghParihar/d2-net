@@ -4,6 +4,8 @@
 	1. `python train2.py --imgPairs '/home/cair/backup/d2-net/data/imagePairs.csv' --poses '/home/cair/backup/d2-net/data/poses2W.npy' --K '/home/cair/backup/d2-net/data/K.npy' --dataset_path '/home/cair/backup/d2-net' --plot`
 
 	2. `python train2.py --imgPairs '/home/cair/backup/d2-net/data_gazebo/img_pairs.csv' --poses '/home/cair/backup/d2-net/data_gazebo/poses2W.npy' --K '/home/cair/backup/d2-net/data_gazebo/K.npy' --dataset_path '/home/cair/backup/d2-net/data_gazebo' --plot`  
+	
+	3. `python train2.py --imgPairs /home/dhagash/udit/d2-net/data_gazebo/img_pairs.csv --poses /home/dhagash/udit/d2-net/data_gazebo/poses2W.npy --K /home/dhagash/udit/d2-net/data_gazebo/K.npy --dataset_path /home/dhagash/udit/d2-net/data_gazebo --plot`  
 
 2. Training would generate:  
 	1. `train_vis/ checkpoints/ log.txt`

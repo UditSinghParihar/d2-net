@@ -77,18 +77,18 @@ def loss_function(
 		except EmptyTensorError:
 			continue
 
-		H1 = output['H1'][idx_in_batch] 
-		H2 = output['H2'][idx_in_batch]
+		# H1 = output['H1'][idx_in_batch] 
+		# H2 = output['H2'][idx_in_batch]
 
-		try:
-			pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
-		except IndexError:
-			continue
+		# try:
+		# 	pos1, pos2 = homoAlign(pos1, pos2, H1, H2, device)
+		# except IndexError:
+		# 	continue
 
-		ids = idsAlign(pos1, device, h1, w1)
+		# ids = idsAlign(pos1, device, h1, w1)
 
-		img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
-		img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
+		# img_warp1 = tgm.warp_perspective(batch['image1'].to(device), H1, dsize=(400, 400))
+		# img_warp2 = tgm.warp_perspective(batch['image2'].to(device), H2, dsize=(400, 400))
 
 		# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output)
 
@@ -171,8 +171,8 @@ def loss_function(
 		n_valid_samples += 1
 
 		if plot and batch['batch_idx'] % batch['log_interval'] == 0:
-			# drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
-			drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
+			drawTraining(batch['image1'], batch['image2'], pos1, pos2, batch, idx_in_batch, output, save=True)
+			# drawTraining(img_warp1, img_warp2, pos1, pos2, batch, idx_in_batch, output, save=True)
 
 	if not has_grad:
 		raise NoGradientError
@@ -459,6 +459,7 @@ def homoAlign(pos1, pos2, H1, H2, device):
 def idsAlign(pos1, device, h1, w1):
 	# row = pos1[0, :]/8
 	# col = pos1[1, :]/8
+	
 	pos1D = downscale_positions(pos1, scaling_steps=3)
 	row = pos1D[0, :]
 	col = pos1D[1, :]
@@ -466,10 +467,11 @@ def idsAlign(pos1, device, h1, w1):
 	ids = []
 
 	for i in range(row.shape[0]):
-		index = (h1 * row[i]) + col[i]
+		# index = (h1 * row[i]) + col[i]
+		index = ((w1) * (row[i])) + (col[i])
 		ids.append(index)
 
-	ids = torch.round(torch.Tensor(ids)).long()
+	ids = torch.round(torch.Tensor(ids)).long().to(device)
 
 	return ids
 
@@ -495,15 +497,15 @@ def semiHardMine(distance_matrix, is_out_of_safe_radius, positive_distance, marg
 	return negDist
 
 
-def getPositiveDistance(descriptors1, descriptors2):
-	positive_distance = torch.norm(descriptors1 - descriptors2, dim=0)
+# def getPositiveDistance(descriptors1, descriptors2):
+# 	positive_distance = torch.norm(descriptors1 - descriptors2, dim=0)
 
-	return positive_distance
+# 	return positive_distance
 
 
-def getDistanceMatrix(descriptors1, all_descriptors2):
-	d1 = descriptors1.t().unsqueeze(0)
-	all_d2 = all_descriptors2.t().unsqueeze(0)
-	distance_matrix = torch.cdist(d1, all_d2, p=2).squeeze()
+# def getDistanceMatrix(descriptors1, all_descriptors2):
+# 	d1 = descriptors1.t().unsqueeze(0)
+# 	all_d2 = all_descriptors2.t().unsqueeze(0)
+# 	distance_matrix = torch.cdist(d1, all_d2, p=2).squeeze()
 
-	return distance_matrix
+# 	return distance_matrix

@@ -14,7 +14,7 @@ import time
 from tqdm import tqdm
 
 from lib.utils import preprocess_image
-
+k
 
 class MegaDepthDataset(Dataset):
 	def __init__(

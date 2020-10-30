@@ -7,6 +7,8 @@
 	
 	3. `python train2.py --imgPairs /home/dhagash/udit/d2-net/data_gazebo/img_pairs.csv --poses /home/dhagash/udit/d2-net/data_gazebo/poses2W.npy --K /home/dhagash/udit/d2-net/data_gazebo/K.npy --dataset_path /home/dhagash/udit/d2-net/data_gazebo --plot`  
 
+	4. `python train2.py --dataset_path /scratch/dhagash/phototourism/brandenburg_gate/dense/images/ --plot`  
+
 2. Training would generate:  
 	1. `train_vis/ checkpoints/ log.txt`
 

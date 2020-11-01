@@ -45,7 +45,7 @@ np.random.seed(1)
 parser = argparse.ArgumentParser(description='Training script')
 
 parser.add_argument(
-	'--imgPairs', type=str, required=False, 
+	'--imgPairs', type=str, required=False,
 	help='path to opposite image pairs'
 )
 parser.add_argument(
@@ -100,7 +100,7 @@ parser.add_argument(
 parser.set_defaults(use_validation=False)
 
 parser.add_argument(
-	'--log_interval', type=int, default=50,
+	'--log_interval', type=int, default=100,
 	help='loss logging interval'
 )
 
@@ -245,7 +245,7 @@ if os.path.isdir(args.checkpoint_directory):
 	print('[Warning] Checkpoint directory already exists.')
 else:
 	os.mkdir(args.checkpoint_directory)
-	
+
 
 # Open the log file for writing
 if os.path.exists(args.log_file):

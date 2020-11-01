@@ -71,12 +71,12 @@ def loss_function(
 		fmap_pos2 = torch.round(
 			downscale_positions(pos2, scaling_steps=scaling_steps)
 		).long()
-		
+
 		descriptors2 = F.normalize(
 			dense_features2[:, fmap_pos2[0, :], fmap_pos2[1, :]],
 			dim=0
 		)
-		
+
 		positive_distance = 2 - 2 * (
 			descriptors1.t().unsqueeze(1) @ descriptors2.t().unsqueeze(2)
 		).squeeze()
@@ -90,14 +90,14 @@ def loss_function(
 			dim=0
 		)[0]
 		is_out_of_safe_radius = position_distance > safe_radius
-		
+
 		distance_matrix = 2 - 2 * (descriptors1.t() @ all_descriptors2)
 
 		negative_distance2 = torch.min(
 			distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
 			dim=1
 		)[0]
-		
+
 		all_fmap_pos1 = grid_positions(h1, w1, device)
 		position_distance = torch.max(
 			torch.abs(
@@ -107,9 +107,9 @@ def loss_function(
 			dim=0
 		)[0]
 		is_out_of_safe_radius = position_distance > safe_radius
-		
+
 		distance_matrix = 2 - 2 * (descriptors2.t() @ all_descriptors1)
-		
+
 		negative_distance1 = torch.min(
 			distance_matrix + (1 - is_out_of_safe_radius.float()) * 10.,
 			dim=1
@@ -140,7 +140,7 @@ def loss_function(
 	return loss
 
 
-def idsAlign(pos1, device, h1, w1):	
+def idsAlign(pos1, device, h1, w1):
 	pos1D = downscale_positions(pos1, scaling_steps=3)
 	row = pos1D[0, :]
 	col = pos1D[1, :]
@@ -148,7 +148,7 @@ def idsAlign(pos1, device, h1, w1):
 	ids = []
 
 	for i in range(row.shape[0]):
-		# index = (h1 * row[i]) + col[i]
+
 		index = ((w1) * (row[i])) + (col[i])
 		ids.append(index)
 
@@ -209,20 +209,20 @@ def drawTraining(image1, image2, pos1, pos2, batch, idx_in_batch, output, save=F
 		), dpi=300)
 	else:
 		plt.show()
-	
+
 	plt.close()
 
 	im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)
 	im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)
 
-	for i in range(0, pos1_aux.shape[1], 10):
+	for i in range(0, pos1_aux.shape[1], 5):
 		im1 = cv2.circle(im1, (pos1_aux[1, i], pos1_aux[0, i]), 1, (0, 0, 255), 2)
-	for i in range(0, pos2_aux.shape[1], 10):
+	for i in range(0, pos2_aux.shape[1], 5):
 		im2 = cv2.circle(im2, (pos2_aux[1, i], pos2_aux[0, i]), 1, (0, 0, 255), 2)
 
 	im3 = cv2.hconcat([im1, im2])
 
-	for i in range(0, pos1_aux.shape[1], 10):
+	for i in range(0, pos1_aux.shape[1], 5):
 		im3 = cv2.line(im3, (int(pos1_aux[1, i]), int(pos1_aux[0, i])), (int(pos2_aux[1, i]) +  im1.shape[1], int(pos2_aux[0, i])), (0, 255, 0), 1)
 
 	if(save == True):

@@ -9,6 +9,8 @@ from lib.utils import preprocess_image
 import cv2
 from tqdm import tqdm
 
+np.random.seed(0)
+
 
 class PhotoTourism(Dataset):
 	def __init__(self, rootDir, preprocessing):
@@ -23,10 +25,23 @@ class PhotoTourism(Dataset):
 		return imgFiles
 
 	def imgRot(self, img1):
-		np.random.seed(0)
-		img2 = img1.rotate(np.random.randint(low=0, high=360))
+		# img2 = img1.rotate(np.random.randint(low=0, high=360))
+		img2 = img1.rotate(np.random.randint(low=0, high=2))
 
 		return img2
+
+	def imgCrop(self, img1, cropSize=256):
+		w, h = img1.size
+		left = np.random.randint(low = 0, high = w - (cropSize + 10))
+		upper = np.random.randint(low = 0, high = h - (cropSize + 10))
+
+		cropImg = img1.crop((left, upper, left+cropSize, upper+cropSize))
+		
+		# cropImg = cv2.cvtColor(np.array(cropImg), cv2.COLOR_BGR2RGB)
+		# cv2.imshow("Image", cropImg)
+		# cv2.waitKey(0)
+
+		return cropImg
 
 	def getCorr(self, img1, img2):
 		im1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
@@ -38,12 +53,17 @@ class PhotoTourism(Dataset):
 		kp1, des1 = surf.detectAndCompute(im1,None)
 		kp2, des2 = surf.detectAndCompute(im2,None)
 
+		if(len(kp1) < 128 or len(kp2) < 128):
+			return [], []
+
 		bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
 		matches = bf.match(des1,des2)
 		matches = sorted(matches, key=lambda x:x.distance)
 
 		if(len(matches) > 800):
 			matches = matches[0:800]
+		elif(len(matches) < 128):
+			return [], []
 
 		pos1 = np.float32([kp1[m.queryIdx].pt for m in matches]).T
 		pos2 = np.float32([kp2[m.trainIdx].pt for m in matches]).T
@@ -70,26 +90,28 @@ class PhotoTourism(Dataset):
 
 		return pos1, pos2
 
-
-
-
-	def build_dataset(self):
+	def build_dataset(self, cropSize=256):
 		print("Building Dataset.")
 
-		imgFiles = self.getImageFiles()[0:500]
+		imgFiles = self.getImageFiles()
 
 		for img in tqdm(imgFiles, total=len(imgFiles)):
 			img1 = Image.open(img)
 
 			if(img1.mode != 'RGB'):
 				img1 = img1.convert('RGB')
+			elif(img1.size[0] < cropSize or img1.size[1] < cropSize):
+				continue
 
+			img1 = self.imgCrop(img1, cropSize)
 			img2 = self.imgRot(img1)
 
 			img1 = np.array(img1)
 			img2 = np.array(img2)
 
 			pos1, pos2 = self.getCorr(img1, img2)
+			if(len(pos1) == 0 or len(pos2) == 0):
+				continue
 
 			self.dataset.append((img1, img2, pos1, pos2))
 

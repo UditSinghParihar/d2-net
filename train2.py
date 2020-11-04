@@ -19,8 +19,8 @@ import warnings
 # from lib.dataset import MegaDepthDataset
 # from lib.dataset2 import LabDataset
 # from lib.datasetGazebo import GazeboDataset
-from lib.datasetPhotoTourism import PhotoTourism
-
+# from lib.datasetPhotoTourism import PhotoTourism
+from lib.datasetGrid import PhotoTourism
 
 # from lib.loss2 import loss_function
 # from lib.lossSIFT import loss_function
@@ -137,7 +137,7 @@ if args.plot:
 		os.mkdir(plot_path)
 
 # Creating CNN model
-model = D2NetAlign(
+model = D2Net(
 	model_file=args.model_file,
 	use_cuda=use_cuda
 )
@@ -235,7 +235,7 @@ def process_epoch(
 	))
 	log_file.flush()
 
-	# scheduler.step()
+	scheduler.step()
 
 	return np.mean(epoch_losses)
 

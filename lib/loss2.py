@@ -77,6 +77,8 @@ def loss_function(
 		except EmptyTensorError:
 			continue
 
+		# exit(1)
+
 		# H1 = output['H1'][idx_in_batch] 
 		# H2 = output['H2'][idx_in_batch]
 

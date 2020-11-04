@@ -26,7 +26,7 @@ class PhotoTourism(Dataset):
 
 	def imgRot(self, img1):
 		# img2 = img1.rotate(np.random.randint(low=0, high=360))
-		img2 = img1.rotate(np.random.randint(low=0, high=15))
+		img2 = img1.rotate(np.random.randint(low=0, high=60))
 
 		return img2
 
@@ -43,49 +43,91 @@ class PhotoTourism(Dataset):
 
 		return cropImg
 
-	def getCorr(self, img1, img2):
+	def getGrid(self, img1, img2, cropSize, minCorr=128, scaling_steps=3, matcher="FLANN"):
 		im1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
 		im2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
 		
-		surf = cv2.xfeatures2d.SURF_create(100)
-		# surf = cv2.xfeatures2d.SIFT_create()
+		# surf = cv2.xfeatures2d.SURF_create(100)
+		surf = cv2.xfeatures2d.SIFT_create()
 
 		kp1, des1 = surf.detectAndCompute(im1,None)
 		kp2, des2 = surf.detectAndCompute(im2,None)
 
-		if(len(kp1) < 128 or len(kp2) < 128):
+		if(len(kp1) < minCorr or len(kp2) < minCorr):
 			return [], []
 
-		bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-		matches = bf.match(des1,des2)
-		matches = sorted(matches, key=lambda x:x.distance)
+		if(matcher == "BF"):
+
+			bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+			matches = bf.match(des1,des2)
+			matches = sorted(matches, key=lambda x:x.distance)
+		
+		elif(matcher == "FLANN"):
+
+			FLANN_INDEX_KDTREE = 0
+			index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+			search_params = dict(checks = 50)
+			flann = cv2.FlannBasedMatcher(index_params, search_params)
+			matches = flann.knnMatch(des1,des2,k=2)
+			good = []
+			for m, n in matches:
+				if m.distance < 0.7*n.distance:
+					good.append(m)
+			matches = good
 
 		if(len(matches) > 800):
 			matches = matches[0:800]
-		elif(len(matches) < 128):
+		elif(len(matches) < minCorr):
 			return [], []
 
-		pos1 = np.float32([kp1[m.queryIdx].pt for m in matches]).T
-		pos2 = np.float32([kp2[m.trainIdx].pt for m in matches]).T
+		# im4 = cv2.drawMatches(im1, kp1, im2, kp2, matches, None, flags=2)
+		# cv2.imshow('Image4', im4)
+		# cv2.waitKey(0)
+
+		src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1,1,2)
+		dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1,1,2)
+		H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+
+		h1, w1 = int(cropSize/(2**scaling_steps)), int(cropSize/(2**scaling_steps))
+		device = torch.device("cpu")
+
+		fmap_pos1 = grid_positions(h1, w1, device)
+		pos1 = upscale_positions(fmap_pos1, scaling_steps=scaling_steps).data.cpu().numpy()
+
+		pos1[[0, 1]] = pos1[[1, 0]]
+		
+		ones = np.ones((1, pos1.shape[1]))
+		pos1Homo = np.vstack((pos1, ones))
+		pos2Homo = np.dot(H, pos1Homo)
+		pos2Homo = pos2Homo/pos2Homo[2, :]
+		pos2 = pos2Homo[0:2, :]
 
 		pos1[[0, 1]] = pos1[[1, 0]]
 		pos2[[0, 1]] = pos2[[1, 0]]
+		pos1 = pos1.astype(np.float32)
+		pos2 = pos2.astype(np.float32)
 
-		# for i in range(0, pos1.shape[1], 1):
+		ids = []
+		for i in range(pos2.shape[1]):
+			x, y = pos2[:, i]
+			if(x < (cropSize-2) and y < (cropSize-2)):
+				ids.append(i)
+		pos1 = pos1[:, ids]
+		pos2 = pos2[:, ids]
+
+		# for i in range(0, pos1.shape[1], 20):
 		# 	im1 = cv2.circle(im1, (pos1[1, i], pos1[0, i]), 1, (0, 0, 255), 2)
-		# for i in range(0, pos2.shape[1], 1):
+		# for i in range(0, pos2.shape[1], 20):
 		# 	im2 = cv2.circle(im2, (pos2[1, i], pos2[0, i]), 1, (0, 0, 255), 2)
 
 		# im3 = cv2.hconcat([im1, im2])
 
-		# for i in range(0, pos1.shape[1], 1):
+		# for i in range(0, pos1.shape[1], 20):
 		# 	im3 = cv2.line(im3, (int(pos1[1, i]), int(pos1[0, i])), (int(pos2[1, i]) +  im1.shape[1], int(pos2[0, i])), (0, 255, 0), 1)
 
-		# im4 = cv2.drawMatches(im1, kp1, im2, kp2, matches, None, flags=2)
 		# cv2.imshow('Image', im1)
 		# cv2.imshow('Image2', im2)
 		# cv2.imshow('Image3', im3)
-		# cv2.imshow('Image4', im4)
 		# cv2.waitKey(0)
 
 		return pos1, pos2
@@ -109,7 +151,8 @@ class PhotoTourism(Dataset):
 			img1 = np.array(img1)
 			img2 = np.array(img2)
 
-			pos1, pos2 = self.getCorr(img1, img2)
+			pos1, pos2 =  self.getGrid(img1, img2, cropSize)
+
 			if(len(pos1) == 0 or len(pos2) == 0):
 				continue
 

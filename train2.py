@@ -11,6 +11,7 @@ import torch
 import torch.optim as optim
 
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from tqdm import tqdm
 
@@ -182,6 +183,7 @@ training_dataloader = DataLoader(
 	shuffle=True
 )
 
+writer = SummaryWriter('runs/exp1')
 
 # Define epoch function
 def process_epoch(
@@ -223,6 +225,7 @@ def process_epoch(
 				'train' if train else 'valid',
 				epoch_idx, batch_idx, len(dataloader), np.mean(epoch_losses)
 			))
+			writer.add_scalar("Loss/train", np.mean(epoch_losses), ((epoch_idx-1)*len(dataloader)) + batch_idx)
 
 		if train:
 			loss.backward()
@@ -233,9 +236,12 @@ def process_epoch(
 		epoch_idx,
 		np.mean(epoch_losses)
 	))
-	log_file.flush()
+	writer.add_scalar("Loss/train", np.mean(epoch_losses), ((epoch_idx-1)*len(dataloader)) + batch_idx)
 
-	scheduler.step()
+	log_file.flush()
+	writer.flush()
+
+	# scheduler.step()
 
 	return np.mean(epoch_losses)
 
@@ -313,3 +319,4 @@ for epoch_idx in range(1, args.num_epochs + 1):
 
 # Close the log file
 log_file.close()
+writer.close()

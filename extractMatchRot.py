@@ -24,25 +24,21 @@ from PIL import Image
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform
+import cv2
 
 
 parser = argparse.ArgumentParser(description='Feature extraction script')
-parser.add_argument('imgs', type=str, nargs=2)
+parser.add_argument('imgs', type=str, nargs=1)
 parser.add_argument(
 	'--preprocessing', type=str, default='caffe',
 	help='image preprocessing (caffe or torch)'
 )
-# parser.add_argument(
-# 	'--model_file', type=str, default='models/d2_tf.pth',
-# 	help='path to the full model'
-# )
-
-WEIGHTS = '/home/dhagash/d2-net/d2-net_udit/checkpoints/checkpoint_PT_highRot_epoch/d2.15.pth'
-# WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
-# WEIGHTS = 'models/d2_tf.pth'
-
 parser.add_argument(
-	'--model_file', type=str, default=WEIGHTS,
+	'--model_file1', type=str, default='models/d2_tf.pth',
+	help='path to the full model'
+)
+parser.add_argument(
+	'--model_file2', type=str, default='results/train_corr14_360/checkpoints/d2.10.pth',
 	help='path to the full model'
 )
 parser.add_argument(
@@ -74,8 +70,7 @@ parser.add_argument(
 parser.set_defaults(use_relu=True)
 
 
-def extract(file, args, model, device):
-	image = imageio.imread(file)
+def extract(image, args, model, device):
 	if len(image.shape) == 2:
 		image = image[:, :, np.newaxis]
 		image = np.repeat(image, 3, -1)
@@ -130,9 +125,9 @@ def extract(file, args, model, device):
 	return feat
 
 
-def	drawMatches(file1, file2, feat1, feat2):
-	image1 = np.array(Image.open(file1))
-	image2 = np.array(Image.open(file2))
+def	drawMatches(image1, image2, feat1, feat2):
+	image1 = np.array(image1)
+	image2 = np.array(image2)
 
 	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
 	print('Number of raw matches: %d.' % matches.shape[0])
@@ -159,9 +154,11 @@ def	drawMatches(file1, file2, feat1, feat2):
 	plt.show()
 
 
-def	drawMatches2(file1, file2, feat1, feat2):
-	image1 = cv2.imread(file1)
-	image2 = cv2.imread(file2)
+def	drawMatches2(image1, image2, feat1, feat2):
+	# image1 = cv2.imread(file1)
+	# image2 = cv2.imread(file2)
+	image1 = np.array(cv2.cvtColor(np.array(image1), cv2.COLOR_BGR2RGB))
+	image2 = np.array(cv2.cvtColor(np.array(image2), cv2.COLOR_BGR2RGB))
 
 	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
 	keypoints_left = feat1['keypoints'][matches[:, 0], : 2].T
@@ -188,16 +185,30 @@ if __name__ == '__main__':
 	device = torch.device("cuda:0" if use_cuda else "cpu")
 	args = parser.parse_args()
 
-	model = D2Net(
-		model_file=args.model_file,
+	model1 = D2Net(
+		model_file=args.model_file1,
 		use_relu=args.use_relu,
 		use_cuda=use_cuda
 	)
 
-	feat1 = extract(args.imgs[0], args, model, device)
-	feat2 = extract(args.imgs[1], args, model, device)
+	model2 = D2Net(
+		model_file=args.model_file2,
+		use_relu=args.use_relu,
+		use_cuda=use_cuda
+	)
+
+	image1 = Image.open(args.imgs[0])
+	image2 = image1.rotate(np.random.randint(low=90, high=270))
+
+	feat1Pre = extract(np.array(image1), args, model1, device)
+	feat2Pre = extract(np.array(image2), args, model1, device)
+
+	feat1Trained = extract(np.array(image1), args, model2, device)
+	feat2Trained = extract(np.array(image2), args, model2, device)
+	
 	print("Features extracted.")
 
-	drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
+	drawMatches(image1, image2, feat1Pre, feat2Pre)
+	drawMatches(image1, image2, feat1Trained, feat2Trained)
 
-	# drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)
+	# drawMatches2(image1, image2, feat1, feat2)

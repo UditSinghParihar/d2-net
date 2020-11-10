@@ -19,12 +19,22 @@
 
 4. Extracting and Matching D2Net features:  
 	1. `python extractMatch.py '/home/cair/backup/deep_floor/correspond/qualitative/pair_2/homo1.jpg' '/home/cair/backup/deep_floor/correspond/qualitative/pair_2/homo2.jpg'`  
+	2. `python extractMatchRot.py /scratch/dhagash/phototourism/brandenburg_gate/dense/images/41967863_5418850004.jpg`    
 
 5. Warping function:  
 	1. `python testWarpTorch.py`  
 
 6. Downloading ScanNet:
-	1. `wget -r -A .sens -I /ScanNet/v2/scans/scene000*,/ScanNet/v2/scans/scene001*,/ScanNet/v2/scans/scene002*,/ScanNet/v2/scans/scene003*,/ScanNet/v2/scans/scene004* -nH --cut-dirs=3 --no-parent --reject="index.html*" http://datasets.rrc.iiit.ac.in/ScanNet/v2/scans/`
+	1. `wget -r -A .sens -I /ScanNet/v2/scans/scene000*,/ScanNet/v2/scans/scene001*,/ScanNet/v2/scans/scene002*,/ScanNet/v2/scans/scene003*,/ScanNet/v2/scans/scene004* -nH --cut-dirs=3 --no-parent --reject="index.html*" http://datasets.rrc.iiit.ac.in/ScanNet/v2/scans/`  
+
+7. Testing dataloader:  
+	1. `cp lib/datasetGrid.py ./ && python datasetGrid.py /scratch/dhagash/phototourism/brandenburg_gate/dense/images/`  
+
+8. Tensorboard:
+	1. `ssh -L localhost:16006:localhost:6006 `  
+
+9. Debugging cuda error:  
+	1. `CUDA_LAUNCH_BLOCKING=1 python [YOUR_PROGRAM]`  
 
 # D2-Net: A Trainable CNN for Joint Detection and Description of Local Features
 

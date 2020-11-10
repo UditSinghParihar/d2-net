@@ -25,8 +25,8 @@ class PhotoTourism(Dataset):
 		return imgFiles
 
 	def imgRot(self, img1):
-		# img2 = img1.rotate(np.random.randint(low=0, high=360))
-		img2 = img1.rotate(np.random.randint(low=0, high=60))
+		img2 = img1.rotate(np.random.randint(low=0, high=360))
+		# img2 = img1.rotate(np.random.randint(low=0, high=60))
 
 		return img2
 
@@ -88,7 +88,8 @@ class PhotoTourism(Dataset):
 		dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1,1,2)
 		H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
-		h1, w1 = int(cropSize/(2**scaling_steps)), int(cropSize/(2**scaling_steps))
+		# h1, w1 = int(cropSize/(2**scaling_steps)), int(cropSize/(2**scaling_steps))
+		h1, w1 = int(im1.shape[0]/(2**scaling_steps)), int(im1.shape[1]/(2**scaling_steps))
 		device = torch.device("cpu")
 
 		fmap_pos1 = grid_positions(h1, w1, device)
@@ -110,7 +111,9 @@ class PhotoTourism(Dataset):
 		ids = []
 		for i in range(pos2.shape[1]):
 			x, y = pos2[:, i]
-			if(x < (cropSize-2) and y < (cropSize-2)):
+			# if(2 < x < (cropSize-2) and 2 < y < (cropSize-2)):
+			if(2 < x < (im1.shape[0]-2) and 2 < y < (im1.shape[1]-2)):
+			# if(20 < x < (im1.shape[0]-20) and 20 < y < (im1.shape[1]-20)):
 				ids.append(i)
 		pos1 = pos1[:, ids]
 		pos2 = pos2[:, ids]
@@ -135,7 +138,7 @@ class PhotoTourism(Dataset):
 	def build_dataset(self, cropSize=256):
 		print("Building Dataset.")
 
-		imgFiles = self.getImageFiles()
+		imgFiles = self.getImageFiles()[0:1]
 
 		for img in tqdm(imgFiles, total=len(imgFiles)):
 			img1 = Image.open(img)
@@ -145,7 +148,7 @@ class PhotoTourism(Dataset):
 			elif(img1.size[0] < cropSize or img1.size[1] < cropSize):
 				continue
 
-			img1 = self.imgCrop(img1, cropSize)
+			# img1 = self.imgCrop(img1, cropSize)
 			img2 = self.imgRot(img1)
 
 			img1 = np.array(img1)

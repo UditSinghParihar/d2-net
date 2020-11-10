@@ -24,8 +24,8 @@ class PhotoTourism(Dataset):
 
 		return imgFiles
 
-	def imgRot(self, img1):
-		img2 = img1.rotate(np.random.randint(low=0, high=360))
+	def imgRot(self, img1, min=0, max=360):
+		img2 = img1.rotate(np.random.randint(low=min, high=max))
 		# img2 = img1.rotate(np.random.randint(low=0, high=60))
 
 		return img2
@@ -43,17 +43,18 @@ class PhotoTourism(Dataset):
 
 		return cropImg
 
-	def getGrid(self, img1, img2, cropSize, minCorr=128, scaling_steps=3, matcher="FLANN"):
+	def getGrid(self, img1, img2, minCorr=128, scaling_steps=3, matcher="FLANN"):
 		im1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
 		im2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
 		
-		# surf = cv2.xfeatures2d.SURF_create(100)
-		surf = cv2.xfeatures2d.SIFT_create()
+		surf = cv2.xfeatures2d.SURF_create(100)
+		# surf = cv2.xfeatures2d.SIFT_create()
 
 		kp1, des1 = surf.detectAndCompute(im1,None)
 		kp2, des2 = surf.detectAndCompute(im2,None)
 
 		if(len(kp1) < minCorr or len(kp2) < minCorr):
+			print("Less correspondences {} {}".format(len(kp1), len(kp2)))
 			return [], []
 
 		if(matcher == "BF"):
@@ -112,8 +113,8 @@ class PhotoTourism(Dataset):
 		for i in range(pos2.shape[1]):
 			x, y = pos2[:, i]
 			# if(2 < x < (cropSize-2) and 2 < y < (cropSize-2)):
-			if(2 < x < (im1.shape[0]-2) and 2 < y < (im1.shape[1]-2)):
 			# if(20 < x < (im1.shape[0]-20) and 20 < y < (im1.shape[1]-20)):
+			if(2 < x < (im1.shape[0]-2) and 2 < y < (im1.shape[1]-2)):
 				ids.append(i)
 		pos1 = pos1[:, ids]
 		pos2 = pos2[:, ids]
@@ -135,10 +136,10 @@ class PhotoTourism(Dataset):
 
 		return pos1, pos2
 
-	def build_dataset(self, cropSize=256):
+	def build_dataset(self, cropSize=400):
 		print("Building Dataset.")
 
-		imgFiles = self.getImageFiles()[0:1]
+		imgFiles = self.getImageFiles()
 
 		for img in tqdm(imgFiles, total=len(imgFiles)):
 			img1 = Image.open(img)
@@ -148,13 +149,13 @@ class PhotoTourism(Dataset):
 			elif(img1.size[0] < cropSize or img1.size[1] < cropSize):
 				continue
 
-			# img1 = self.imgCrop(img1, cropSize)
-			img2 = self.imgRot(img1)
+			img1 = self.imgCrop(img1, cropSize)
+			img2 = self.imgRot(img1, min=0, max=360)
 
 			img1 = np.array(img1)
 			img2 = np.array(img2)
 
-			pos1, pos2 =  self.getGrid(img1, img2, cropSize)
+			pos1, pos2 =  self.getGrid(img1, img2, minCorr=30)
 
 			if(len(pos1) == 0 or len(pos2) == 0):
 				continue
@@ -186,4 +187,4 @@ if __name__ == '__main__':
 	training_dataset.build_dataset()
 
 	data = training_dataset[0]
-	print(data['image1'].shape, data['image2'].shape, data['pos1'].shape, data['pos2'].shape)
+	print(data['image1'].shape, data['image2'].shape, data['pos1'].shape, data['pos2'].shape, len(training_dataset))

@@ -37,9 +37,10 @@ parser.add_argument(
 # 	help='path to the full model'
 # )
 
-WEIGHTS = '/home/dhagash/d2-net/d2-net_udit/checkpoints/checkpoint_PT_highRot_epoch/d2.15.pth'
+# WEIGHTS = '/home/dhagash/d2-net/d2-net_udit/checkpoints/checkpoint_PT_highRot_epoch/d2.15.pth'
 # WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
 # WEIGHTS = 'models/d2_tf.pth'
+WEIGHTS = 'results/train_corr15_gazebo/checkpoints/d2.10.pth'
 
 parser.add_argument(
 	'--model_file', type=str, default=WEIGHTS,

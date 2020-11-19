@@ -36,6 +36,10 @@
 9. Debugging cuda error:  
 	1. `CUDA_LAUNCH_BLOCKING=1 python [YOUR_PROGRAM]`  
 
+10. Generating top view using rgb and depth on gazebo dataset:
+	1. `python getTopView.py data_gazebo/data5/rgb/rgb000000.jpg data_gazebo/data5/depth/depth000000.npy`  
+
+
 # D2-Net: A Trainable CNN for Joint Detection and Description of Local Features
 
 This repository contains the implementation of the following paper:

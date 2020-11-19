@@ -54,7 +54,7 @@ class PhotoTourism(Dataset):
 		kp2, des2 = surf.detectAndCompute(im2,None)
 
 		if(len(kp1) < minCorr or len(kp2) < minCorr):
-			print("Less correspondences {} {}".format(len(kp1), len(kp2)))
+			# print("Less correspondences {} {}".format(len(kp1), len(kp2)))
 			return [], []
 
 		if(matcher == "BF"):

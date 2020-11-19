@@ -73,12 +73,13 @@ parser.add_argument(
 	help='image preprocessing (caffe or torch)'
 )
 parser.add_argument(
-	'--model_file', type=str, default='models/d2_tf.pth',
+	# '--model_file', type=str, default='models/d2_tf.pth',
+	'--model_file', type=str, default='results/train_corr14_360/checkpoints/d2.10.pth',
 	help='path to the full model'
 )
 
 parser.add_argument(
-	'--num_epochs', type=int, default=10,
+	'--num_epochs', type=int, default=15,
 	help='number of training epochs'
 )
 parser.add_argument(
@@ -183,7 +184,7 @@ training_dataloader = DataLoader(
 	shuffle=True
 )
 
-writer = SummaryWriter('runs/exp1')
+writer = SummaryWriter('runs')
 
 # Define epoch function
 def process_epoch(

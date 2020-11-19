@@ -11,14 +11,15 @@ def getCorr(imgFile1, imgFile2):
 	im2 = cv2.imread(imgFile2)
 
 	pts_floor = np.array([[190,210],[455,210],[633,475],[0,475]])
-	pts_correct = np.array([[0, 0], [399, 0], [399, 399], [0, 399]])
+	pts_correct = np.array([[0, 0], [600, 0], [600, 600], [0, 600]])
 	homographyMat, status = cv2.findHomography(pts_floor, pts_correct)
-	img1 = cv2.warpPerspective(im1, homographyMat, (400, 400))
+	img1 = cv2.warpPerspective(im1, homographyMat, (600, 600))
 	img2 = cv2.warpPerspective(im2, homographyMat, (400, 400))
 
 	# cv2.imshow("Image1", img1)
-	# cv2.imshow("Image2", img2)
+	# cv2.imshow("Image2", im1)
 	# cv2.waitKey(0)
+	# exit(1)
 
 	startPts = np.array([[0, 0], [400, 0], [400, 400], [0, 400]])
 	endPts = np.array([[400, 400], [0, 400], [0, 0], [400, 0]])

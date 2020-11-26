@@ -47,7 +47,7 @@
 	5. Removing conda env: `conda env remove --name ENVIRONMENT`  
 
  
-# D2-Net: A Trainable CNN for Joint Detection and Description of Local Features
+# [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 
 This repository contains the implementation of the following paper:
 

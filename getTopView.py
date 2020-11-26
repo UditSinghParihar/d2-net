@@ -48,7 +48,8 @@ if __name__ == '__main__':
 	srcPts = np.array(pts)
 
 	# 3D point adjustment to opencv plane
-	trgPts[2, 1], trgPts[3, 1] = -trgPts[2, 1], -trgPts[3, 1]
+	# trgPts[2, 1], trgPts[3, 1] = -trgPts[2, 1], -trgPts[3, 1]
+	# trgPts[:, 1] = -trgPts[:, 1]
 
 	# Making coordinates positive
 	minX = np.min(trgPts[:, 0])
@@ -70,7 +71,7 @@ if __name__ == '__main__':
 	trgPts[:, 0] *= ratioX
 	trgPts[:, 1] *= ratioY
 
-	print(trgPts)
+	# print(trgPts)
 	# plotPts(trgPts)
 
 	for i in range(0, trgPts.shape[0]):

@@ -39,7 +39,14 @@
 10. Generating top view using rgb and depth on gazebo dataset:
 	1. `python getTopView.py data_gazebo/data5/rgb/rgb000000.jpg data_gazebo/data5/depth/depth000000.npy`  
 
+11. Conda environment:
+	1. Base environment activate: `conda activate`  
+	2. Conda environment deactivate: `conda deactivate`
+	3. Conda environments: `/home/udit/softwares/py37/envs/`  
+	4. Activating other conda envs: `conda activate planercnn`    
+	5. Removing conda env: `conda env remove --name ENVIRONMENT`  
 
+ 
 # D2-Net: A Trainable CNN for Joint Detection and Description of Local Features
 
 This repository contains the implementation of the following paper:

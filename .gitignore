@@ -20,3 +20,4 @@ data_gazebo_floor/
 data_gazebo_real/
 runs/
 *~
+results/

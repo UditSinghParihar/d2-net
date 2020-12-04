@@ -1,4 +1,4 @@
-import open3d as o3d
+# import open3d as o3d
 from sys import argv, exit
 from PIL import Image
 import math

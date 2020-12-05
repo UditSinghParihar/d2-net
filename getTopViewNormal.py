@@ -42,7 +42,7 @@ def getPointCloud(rgbFile, depthFile):
 	pcd.points = o3d.utility.Vector3dVector(points)
 	pcd.colors = o3d.utility.Vector3dVector(colors/255)
 
-	downpcd = pcd.voxel_down_sample(voxel_size=0.01)
+	downpcd = pcd.voxel_down_sample(voxel_size=0.03)
 	# points = np.asarray(downpcd.points)
 	
 	# ones = np.ones((points.shape[0], 1))
@@ -53,10 +53,10 @@ def getPointCloud(rgbFile, depthFile):
 
 	# downpcd.points = o3d.utility.Vector3dVector((points.T)[:, 0:3])
 
-	axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
-	o3d.visualization.draw_geometries([pcd, axis])
+	# axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
+	# o3d.visualization.draw_geometries([downpcd, axis])
 	
-	return pcd
+	return downpcd
 
 
 def rotation_matrix_from_vectors(vec1, vec2):
@@ -74,9 +74,19 @@ def rotation_matrix_from_vectors(vec1, vec2):
 	return rotation_matrix
 
 
-# def getNormals(pcd):
-# 	pcd.estimate_normals(pcd,search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
-# 	o3d.visualization.draw_geometries([pcd])
+def getNormals(pcd):
+	pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+	pcd.orient_normals_towards_camera_location()
+
+	axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
+	o3d.visualization.draw_geometries([pcd, axis])
+	# o3d.visualization.draw_geometries([pcd])
+
+	# print(type(pcd.normals))
+	normals = np.asarray(pcd.normals)
+	# print(normals.shape)
+	# print(normals[:10, :])
+	print(np.mean(normals, axis=0))
 
 
 if __name__ == '__main__':
@@ -90,4 +100,4 @@ if __name__ == '__main__':
 
 	pcd = getPointCloud(rgbFile, depthFile)
 
-	# getNormals(pcd)
+	getNormals(pcd)

@@ -46,6 +46,10 @@
 	4. Activating other conda envs: `conda activate planercnn`    
 	5. Removing conda env: `conda env remove --name ENVIRONMENT`  
 
+12. Generating top view using normal:  
+	1. `python getTopViewNormal.py data_gazebo_floor/data7/rgb/rgb000000.jpg data_gazebo_floor/data7/depth/depth000000.npy`  
+
+
  
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 

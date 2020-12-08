@@ -44,9 +44,9 @@ def getPointCloud(rgbFile, depthFile):
 	pcd.points = o3d.utility.Vector3dVector(points)
 	pcd.colors = o3d.utility.Vector3dVector(colors/255)
 
-	downpcd = pcd.voxel_down_sample(voxel_size=0.03)
+	# downpcd = pcd.voxel_down_sample(voxel_size=0.03)
 	
-	return downpcd
+	return pcd
 
 
 def rotationMatrixFromVectors(vec1, vec2):
@@ -69,6 +69,81 @@ def getNormals(pcd):
 	return surfaceNormal
 
 
+def getPointsInCamera(pcd, T):
+	pcd.transform(np.linalg.inv(T))
+
+	return pcd
+
+
+def extractPCD(pcd):
+	pcdPoints = np.asarray(pcd.points)
+	pcdColor = np.asarray(pcd.colors).T
+
+	return pcdPoints, pcdColor
+
+
+def getPixels(pcdPoints):
+	K = np.array([[focalLength, 0, centerX], [0, focalLength, centerY], [0, 0, 1]])
+	pxh = K @ pcdPoints.T
+
+	pxh[0, :] = pxh[0, :]/pxh[2, :]
+	pxh[1, :] = pxh[1, :]/pxh[2, :]
+	pxh[2, :] = pxh[2, :]/pxh[2, :]
+
+	return pxh[0:2, :]
+
+
+def resizePxs(pxs, imgSize):
+	minX = np.min(pxs[0, :])
+	minY = np.min(pxs[1, :])
+
+	if(minX < 0):
+		pxs[0, :] += (np.abs(minX) + 2)
+	if(minY < 0):
+		pxs[1, :] += (np.abs(minY) + 2)
+
+	maxX = np.max(pxs[0, :])
+	maxY = np.max(pxs[1, :])
+
+	ratioX = imgSize/maxX
+	ratioY = imgSize/maxY
+
+	pxs[0, :] *= ratioX
+	pxs[1, :] *= ratioY
+
+	return pxs
+
+
+def pxsToImg(pxs, pcdColor, imgSize):
+	height = imgSize; width = imgSize
+
+	img = np.zeros((height, width, 3), np.uint8)
+
+	for i in range(pxs.shape[1]):
+		r = int(pxs[1, i]); c = int(pxs[0, i])
+		if(r<height and c<width and r>0 and c>0):
+			red = 255*pcdColor[0, i]; green = 255*pcdColor[1, i]; blue = 255*pcdColor[2, i]
+			img[r, c] = (blue, green, red)
+			
+	return img
+
+
+def getImg(pcd, T):
+	pcd = getPointsInCamera(pcd, T)
+
+	pcdPoints, pcdColor = extractPCD(pcd)
+
+	pxs = getPixels(pcdPoints)
+
+	imgSize = 400
+	pxs = resizePxs(pxs, imgSize)
+
+	img = pxsToImg(pxs, pcdColor, imgSize)
+
+	cv2.imshow("image", img)
+	cv2.waitKey(0)
+
+
 if __name__ == '__main__':
 	rgbFile = argv[1]
 	depthFile = argv[2]
@@ -89,3 +164,10 @@ if __name__ == '__main__':
 
 	display(pcd)
 	display(pcd, T)
+
+	# axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
+	# pcd.transform(np.linalg.inv(T))
+
+	# o3d.visualization.draw_geometries([pcd, axis])
+
+	getImg(pcd, T)

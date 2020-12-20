@@ -144,6 +144,50 @@ def getImg(pcd, T):
 	cv2.waitKey(0)
 
 
+def get3Dpoints(rgbFile, surfaceNormal, d=10):
+	rgb = Image.open(rgbFile)
+
+	K = np.array([[focalLength, 0, centerX], [0, focalLength, centerY], [0, 0, 1]])
+
+	n1, n2, n3 = surfaceNormal
+
+	points = []
+	colors = []
+
+	for v in range(rgb.size[1]):
+		for u in range(rgb.size[0]):
+			colors.append(rgb.getpixel((u, v)))
+			
+			x = np.array([u, v, 1]).reshape(3, 1)
+			ray = np.linalg.inv(K) @ x
+			l, m , n = ray.reshape(3)
+
+			# x1, y1, z1 = v, u, 1			
+			x1, y1, z1 = u, v, 1
+
+			t = -(n1*x1 + n2*y1 + n3*z1 + d)/(n1*l + n2*m + n3*n)
+
+			X = l*t + x1
+			Y = m*t + y1
+			Z = n*t + z1
+
+			points.append((X, Y, Z))
+
+			# exit(1)
+
+	points = np.asarray(points)
+	colors = np.asarray(colors)
+
+	pcd = o3d.geometry.PointCloud()
+	pcd.points = o3d.utility.Vector3dVector(points)
+	pcd.colors = o3d.utility.Vector3dVector(colors/255)
+
+	display(pcd)
+
+	# print(surfaceNormal)
+
+
+
 if __name__ == '__main__':
 	rgbFile = argv[1]
 	depthFile = argv[2]
@@ -162,12 +206,9 @@ if __name__ == '__main__':
 	T = np.identity(4)
 	T[0:3, 0:3] = rotationMatrix
 
-	display(pcd)
-	display(pcd, T)
+	# display(pcd)
+	# display(pcd, T)
 
-	# axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
-	# pcd.transform(np.linalg.inv(T))
+	# getImg(pcd, T)
 
-	# o3d.visualization.draw_geometries([pcd, axis])
-
-	getImg(pcd, T)
+	get3Dpoints(rgbFile, surfaceNormal, d=10)

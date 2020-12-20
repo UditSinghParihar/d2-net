@@ -202,4 +202,4 @@ if __name__ == '__main__':
 
 	drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
 
-	# drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)
+	drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)

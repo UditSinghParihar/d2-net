@@ -49,6 +49,10 @@
 12. Generating top view using normal:  
 	1. `python getTopViewNormal.py data_gazebo_floor/data7/rgb/rgb000000.jpg data_gazebo_floor/data7/depth/depth000000.npy`  
  
+13. Undistorting and coloring raw robotcar images, using robotcar-dataset-sdk:  
+	1. python play_images.py ../../overcast/2014-06-26-09-24-58/stereo/centre/ --models_dir ../models/  
+
+
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 
 This repository contains the implementation of the following paper:

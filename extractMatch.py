@@ -40,8 +40,9 @@ parser.add_argument(
 # WEIGHTS = 'models/d2_tf.pth'
 # WEIGHTS = '/home/dhagash/d2-net/d2-net_udit/checkpoints/checkpoint_PT_highRot_epoch/d2.15.pth'
 # WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
-WEIGHTS = 'results/train_corr15_gazebo/checkpoints/d2.10.pth'
+# WEIGHTS = 'results/train_corr15_gazebo/checkpoints/d2.10.pth'
 # WEIGHTS = 'results/train_corr16_gz_15ep_curriculum/checkpoints/d2.15.pth'
+WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_allRoad/d2.10.pth'
 
 parser.add_argument(
 	'--model_file', type=str, default=WEIGHTS,

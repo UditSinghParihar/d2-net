@@ -146,6 +146,9 @@ def getImg(pcd, T):
 
 def get3Dpoints(rgbFile, surfaceNormal, d=10):
 	rgb = Image.open(rgbFile)
+	# cvImage = cv2.cvtColor(np.array(rgb), cv2.COLOR_RGB2BGR)
+	# cv2.imshow("image", cvImage)
+	# cv2.waitKey(0)	
 
 	K = np.array([[focalLength, 0, centerX], [0, focalLength, centerY], [0, 0, 1]])
 
@@ -156,6 +159,9 @@ def get3Dpoints(rgbFile, surfaceNormal, d=10):
 
 	for v in range(rgb.size[1]):
 		for u in range(rgb.size[0]):
+			if(rgb.getpixel((u, v)) == (178, 178, 178)):
+				continue
+
 			colors.append(rgb.getpixel((u, v)))
 			
 			x = np.array([u, v, 1]).reshape(3, 1)
@@ -173,8 +179,6 @@ def get3Dpoints(rgbFile, surfaceNormal, d=10):
 
 			points.append((X, Y, Z))
 
-			# exit(1)
-
 	points = np.asarray(points)
 	colors = np.asarray(colors)
 
@@ -182,10 +186,18 @@ def get3Dpoints(rgbFile, surfaceNormal, d=10):
 	pcd.points = o3d.utility.Vector3dVector(points)
 	pcd.colors = o3d.utility.Vector3dVector(colors/255)
 
-	display(pcd)
+	# display(pcd)
 
-	# print(surfaceNormal)
+	return pcd
 
+
+def getPlane(pcd):
+	planeModel, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
+	[a, b, c, d] = planeModel
+	surfaceNormal = [a, b, c]
+	planeDis = d
+	# print("Plane equation: {}x + {}y + {}z + {} = 0".format(a, b, c, d))
+	return surfaceNormal, planeDis
 
 
 if __name__ == '__main__':
@@ -199,16 +211,20 @@ if __name__ == '__main__':
 
 	pcd = getPointCloud(rgbFile, depthFile)
 
-	surfaceNormal = getNormals(pcd)
+	# surfaceNormal = -getNormals(pcd)
+	surfaceNormal, planeDis = getPlane(pcd)
 
 	zAxis = np.array([0, 0, 1])
-	rotationMatrix = rotationMatrixFromVectors(zAxis, -surfaceNormal)
+	rotationMatrix = rotationMatrixFromVectors(zAxis, surfaceNormal)
 	T = np.identity(4)
 	T[0:3, 0:3] = rotationMatrix
 
-	# display(pcd)
-	# display(pcd, T)
+	display(pcd)
+	display(pcd, T)
 
-	# getImg(pcd, T)
+	getImg(pcd, T)
 
-	get3Dpoints(rgbFile, surfaceNormal, d=10)
+	# pcdRay = get3Dpoints(rgbFile, surfaceNormal, d=planeDis)
+	# display(pcdRay, T)
+
+	# getImg(pcdRay, T)

@@ -81,7 +81,7 @@ def getDist(x1, y1, x2, y2):
 
 def getTimePairs(XWorld, YWorld, data):
 	pairs = []
-	dist = 6
+	dist = 7.8
 
 	for i in range(200, len(XWorld)-80):
 		for j in range(i, len(XWorld)):
@@ -153,7 +153,7 @@ if __name__ == '__main__':
 	trans = convert2World(data)
 
 	XWorld, YWorld, ZWorld = getXYZ(trans)
-	# draw(XWorld, YWorld)
+	draw(XWorld, YWorld)
 
 	timePairs = getTimePairs(XWorld, YWorld, data)
 

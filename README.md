@@ -50,7 +50,14 @@
 	1. `python getTopViewNormal.py data_gazebo_floor/data7/rgb/rgb000000.jpg data_gazebo_floor/data7/depth/depth000000.npy`  
  
 13. Undistorting and coloring raw robotcar images, using robotcar-dataset-sdk:  
-	1. python play_images.py ../../overcast/2014-06-26-09-24-58/stereo/centre/ --models_dir ../models/  
+	1. `python play_images.py ../../overcast/2014-06-26-09-24-58/stereo/centre/ --models_dir ../models/`  
+
+14. Generating image pairs from front and rear camera:  
+	1. `python getPairsOxford.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_rgb /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_rear_rgb`  
+
+15. Viewing image pairs:  
+	1. `python viewPairs.py imagePairsOxford.csv`  
+  
 
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)

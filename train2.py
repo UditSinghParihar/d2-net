@@ -21,7 +21,8 @@ import warnings
 # from lib.dataset2 import LabDataset
 # from lib.datasetGazebo import GazeboDataset
 # from lib.datasetPhotoTourism import PhotoTourism
-from lib.datasetGrid import PhotoTourism
+# from lib.datasetGrid import PhotoTourism
+from lib.datasetGridGray import PhotoTourism
 
 # from lib.loss2 import loss_function
 # from lib.lossSIFT import loss_function
@@ -63,6 +64,11 @@ parser.add_argument(
 	help='path to the dataset'
 )
 
+parser.add_argument(
+	'--dataset_path2', type=str, required=False,
+	help='path to the second dataset'
+)
+
 # parser.add_argument(
 # 	'--scene_info_path', type=str, required=True,
 # 	help='path to the processed scenes'
@@ -73,8 +79,10 @@ parser.add_argument(
 	help='image preprocessing (caffe or torch)'
 )
 parser.add_argument(
+	# '--model_file', type=str, default='models/d2_ots.pth',
 	# '--model_file', type=str, default='models/d2_tf.pth',
-	'--model_file', type=str, default='results/train_corr14_360/checkpoints/d2.10.pth',
+	# '--model_file', type=str, default='results/train_corr14_360/checkpoints/d2.10.pth',
+	'--model_file', type=str, default='/home/udit/udit/d2-net/results/train_corr18_stability_term/checkpoints/d2.09.pth',
 	help='path to the full model'
 )
 
@@ -83,7 +91,7 @@ parser.add_argument(
 	help='number of training epochs'
 )
 parser.add_argument(
-	'--lr', type=float, default=1e-3,
+	'--lr', type=float, default=5e-4,
 	help='initial learning rate'
 )
 parser.add_argument(
@@ -173,7 +181,8 @@ if args.use_validation:
 
 # training_dataset = LabDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
 # training_dataset = GazeboDataset(args.dataset_path, args.imgPairs, args.poses, args.K, args.preprocessing)
-training_dataset = PhotoTourism(args.dataset_path, args.preprocessing)
+# training_dataset = PhotoTourism(args.dataset_path, args.preprocessing)
+training_dataset = PhotoTourism(args.dataset_path, args.dataset_path2, args.preprocessing)
 
 training_dataset.build_dataset()
 
@@ -242,7 +251,7 @@ def process_epoch(
 	log_file.flush()
 	writer.flush()
 
-	# scheduler.step()
+	scheduler.step()
 
 	return np.mean(epoch_losses)
 

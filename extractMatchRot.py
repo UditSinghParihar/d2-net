@@ -27,6 +27,9 @@ from skimage.transform import ProjectiveTransform
 import cv2
 
 
+WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_crop/d2.10.pth'
+# WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
+
 parser = argparse.ArgumentParser(description='Feature extraction script')
 parser.add_argument('imgs', type=str, nargs=1)
 parser.add_argument(
@@ -38,7 +41,7 @@ parser.add_argument(
 	help='path to the full model'
 )
 parser.add_argument(
-	'--model_file2', type=str, default='results/train_corr14_360/checkpoints/d2.10.pth',
+	'--model_file2', type=str, default=WEIGHTS,
 	help='path to the full model'
 )
 parser.add_argument(
@@ -185,11 +188,11 @@ if __name__ == '__main__':
 	device = torch.device("cuda:0" if use_cuda else "cpu")
 	args = parser.parse_args()
 
-	model1 = D2Net(
-		model_file=args.model_file1,
-		use_relu=args.use_relu,
-		use_cuda=use_cuda
-	)
+	# model1 = D2Net(
+	# 	model_file=args.model_file1,
+	# 	use_relu=args.use_relu,
+	# 	use_cuda=use_cuda
+	# )
 
 	model2 = D2Net(
 		model_file=args.model_file2,
@@ -200,15 +203,15 @@ if __name__ == '__main__':
 	image1 = Image.open(args.imgs[0])
 	image2 = image1.rotate(np.random.randint(low=90, high=270))
 
-	feat1Pre = extract(np.array(image1), args, model1, device)
-	feat2Pre = extract(np.array(image2), args, model1, device)
+	# feat1Pre = extract(np.array(image1), args, model1, device)
+	# feat2Pre = extract(np.array(image2), args, model1, device)
 
 	feat1Trained = extract(np.array(image1), args, model2, device)
 	feat2Trained = extract(np.array(image2), args, model2, device)
 	
 	print("Features extracted.")
 
-	drawMatches(image1, image2, feat1Pre, feat2Pre)
+	# drawMatches(image1, image2, feat1Pre, feat2Pre)
 	drawMatches(image1, image2, feat1Trained, feat2Trained)
 
 	# drawMatches2(image1, image2, feat1, feat2)

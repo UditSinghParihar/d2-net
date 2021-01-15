@@ -14,16 +14,20 @@ np.random.seed(0)
 
 
 class PhotoTourism(Dataset):
-	def __init__(self, rootDir, preprocessing):
-		self.rootDir = rootDir
+	def __init__(self, rootDir1, rootDir2, preprocessing):
+		self.rootDir1 = rootDir1
+		self.rootDir2 = rootDir2
 		self.preprocessing = preprocessing
 		self.dataset = []
 
 	def getImageFiles(self):
-		imgFiles = os.listdir(self.rootDir)
-		imgFiles = [os.path.join(self.rootDir, img) for img in imgFiles]
+		imgFiles1 = os.listdir(self.rootDir1)
+		imgFiles1 = [os.path.join(self.rootDir1, img) for img in imgFiles1]
 
-		return imgFiles
+		imgFiles2 = os.listdir(self.rootDir2)
+		imgFiles2 = [os.path.join(self.rootDir2, img) for img in imgFiles2]
+
+		return imgFiles1+imgFiles2
 
 	def imgRot(self, img1, min=0, max=360):
 		img2 = img1.rotate(np.random.randint(low=min, high=max))
@@ -44,9 +48,41 @@ class PhotoTourism(Dataset):
 
 		return cropImg
 
-	def getGrid(self, img1, img2, minCorr=128, scaling_steps=3, matcher="FLANN"):
-		im1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-		im2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+	def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
+		# initialize the dimensions of the image to be resized and
+		# grab the image size
+		dim = None
+		(h, w) = image.shape[:2]
+
+		# if both the width and height are None, then return the
+		# original image
+		if width is None and height is None:
+			return image
+
+		# check to see if the width is None
+		if width is None:
+			# calculate the ratio of the height and construct the
+			# dimensions
+			r = height / float(h)
+			dim = (int(w * r), height)
+
+		# otherwise, the height is None
+		else:
+			# calculate the ratio of the width and construct the
+			# dimensions
+			r = width / float(w)
+			dim = (width, int(h * r))
+
+		# resize the image
+		resized = cv2.resize(image, dim, interpolation = inter)
+
+		# return the resized image
+		return resized
+
+	def getGrid(self, im1, im2, minCorr=128, scaling_steps=3, matcher="FLANN"):
+		# im1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
+		# im2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+
 		
 		surf = cv2.xfeatures2d.SURF_create(100)
 		# surf = cv2.xfeatures2d.SIFT_create()
@@ -120,34 +156,40 @@ class PhotoTourism(Dataset):
 		pos1 = pos1[:, ids]
 		pos2 = pos2[:, ids]
 
-		# for i in range(0, pos1.shape[1], 20):
-		# 	im1 = cv2.circle(im1, (pos1[1, i], pos1[0, i]), 1, (0, 0, 255), 2)
-		# for i in range(0, pos2.shape[1], 20):
-		# 	im2 = cv2.circle(im2, (pos2[1, i], pos2[0, i]), 1, (0, 0, 255), 2)
+		for i in range(0, pos1.shape[1], 20):
+			im1 = cv2.circle(im1, (pos1[1, i], pos1[0, i]), 1, (0, 0, 255), 2)
+		for i in range(0, pos2.shape[1], 20):
+			im2 = cv2.circle(im2, (pos2[1, i], pos2[0, i]), 1, (0, 0, 255), 2)
 
-		# im3 = cv2.hconcat([im1, im2])
+		im3 = cv2.hconcat([im1, im2])
 
-		# for i in range(0, pos1.shape[1], 20):
-		# 	im3 = cv2.line(im3, (int(pos1[1, i]), int(pos1[0, i])), (int(pos2[1, i]) +  im1.shape[1], int(pos2[0, i])), (0, 255, 0), 1)
+		for i in range(0, pos1.shape[1], 20):
+			im3 = cv2.line(im3, (int(pos1[1, i]), int(pos1[0, i])), (int(pos2[1, i]) +  im1.shape[1], int(pos2[0, i])), (0, 255, 0), 1)
 
 		# cv2.imshow('Image', im1)
 		# cv2.imshow('Image2', im2)
-		# cv2.imshow('Image3', im3)
-		# cv2.waitKey(0)
+		cv2.imshow('Image3', im3)
+		cv2.waitKey(0)
 
 		return pos1, pos2
 
-	def build_dataset(self, cropSize=256):
+	def build_dataset(self, cropSize=400):
 		print("Building Dataset.")
 
 		imgFiles = self.getImageFiles()
 
 		for img in tqdm(imgFiles, total=len(imgFiles)):
-			img1 = Image.open(img)
+			img1 = Image.open(img).convert('L').resize((500, 500))
 
-			if(img1.mode != 'RGB'):
-				img1 = img1.convert('RGB')
-			elif(img1.size[0] < cropSize or img1.size[1] < cropSize):
+			# cv2.imshow("Image full", cv2.cvtColor(np.array(img1.convert('RGB')), cv2.COLOR_BGR2RGB))
+			# cv2.waitKey(0)
+
+			# if(img1.mode != 'RGB'):
+			# 	img1 = img1.convert('RGB')
+			# elif(img1.size[0] < cropSize or img1.size[1] < cropSize):
+			# 	continue
+
+			if(img1.size[0] < cropSize or img1.size[1] < cropSize):
 				continue
 
 			img1 = self.imgCrop(img1, cropSize)
@@ -155,6 +197,12 @@ class PhotoTourism(Dataset):
 
 			img1 = np.array(img1)
 			img2 = np.array(img2)
+
+			img1 = img1[:, :, np.newaxis]
+			img1 = np.repeat(img1, 3, -1)
+
+			img2 = img2[:, :, np.newaxis]
+			img2 = np.repeat(img2, 3, -1)
 
 			pos1, pos2 =  self.getGrid(img1, img2, minCorr=30)
 
@@ -182,9 +230,10 @@ class PhotoTourism(Dataset):
 
 
 if __name__ == '__main__':
-	rootDir = argv[1]
+	rootDir1 = argv[1]
+	rootDir2 = argv[2]
 
-	training_dataset = PhotoTourism(rootDir, 'caffe')
+	training_dataset = PhotoTourism(rootDir1, rootDir2, 'caffe')
 	training_dataset.build_dataset()
 
 	data = training_dataset[0]

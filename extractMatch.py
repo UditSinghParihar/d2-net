@@ -23,7 +23,7 @@ from sys import exit
 from PIL import Image
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
-from skimage.transform import ProjectiveTransform
+from skimage.transform import ProjectiveTransform, AffineTransform
 
 
 parser = argparse.ArgumentParser(description='Feature extraction script')
@@ -42,7 +42,9 @@ parser.add_argument(
 # WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
 # WEIGHTS = 'results/train_corr15_gazebo/checkpoints/d2.10.pth'
 # WEIGHTS = 'results/train_corr16_gz_15ep_curriculum/checkpoints/d2.15.pth'
-WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_allRoad/d2.10.pth'
+# WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_allRoad/d2.10.pth'
+# WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_crop/d2.10.pth'
+WEIGHTS = '/home/udit/udit/d2-net/results/train_corr18_stability_term/checkpoints/d2.09.pth'
 
 parser.add_argument(
 	'--model_file', type=str, default=WEIGHTS,
@@ -77,8 +79,9 @@ parser.add_argument(
 parser.set_defaults(use_relu=True)
 
 
-def extract(file, args, model, device):
-	image = imageio.imread(file)
+def extract(image, args, model, device):
+# def extract(file, args, model, device):
+# 	image = imageio.imread(file)
 	if len(image.shape) == 2:
 		image = image[:, :, np.newaxis]
 		image = np.repeat(image, 3, -1)
@@ -133,9 +136,10 @@ def extract(file, args, model, device):
 	return feat
 
 
-def	drawMatches(file1, file2, feat1, feat2):
-	image1 = np.array(Image.open(file1))
-	image2 = np.array(Image.open(file2))
+def	drawMatches(image1, image2, feat1, feat2):
+# def	drawMatches(file1, file2, feat1, feat2):
+	# image1 = np.array(Image.open(file1))
+	# image2 = np.array(Image.open(file2))
 
 	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
 	print('Number of raw matches: %d.' % matches.shape[0])
@@ -145,7 +149,7 @@ def	drawMatches(file1, file2, feat1, feat2):
 	np.random.seed(0)
 	model, inliers = ransac(
 		(keypoints_left, keypoints_right),
-		ProjectiveTransform, min_samples=4,
+		AffineTransform, min_samples=4,
 		residual_threshold=8, max_trials=10000
 	)
 	n_inliers = np.sum(inliers)
@@ -162,9 +166,11 @@ def	drawMatches(file1, file2, feat1, feat2):
 	plt.show()
 
 
-def	drawMatches2(file1, file2, feat1, feat2):
-	image1 = cv2.imread(file1)
-	image2 = cv2.imread(file2)
+def	drawMatches2(image1, image2, feat1, feat2):
+	# image1 = cv2.imread(file1)
+	# image2 = cv2.imread(file2)
+	image1 = np.array(cv2.cvtColor(np.array(image1), cv2.COLOR_BGR2RGB))
+	image2 = np.array(cv2.cvtColor(np.array(image2), cv2.COLOR_BGR2RGB))
 
 	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
 	keypoints_left = feat1['keypoints'][matches[:, 0], : 2].T
@@ -197,10 +203,34 @@ if __name__ == '__main__':
 		use_cuda=use_cuda
 	)
 
-	feat1 = extract(args.imgs[0], args, model, device)
-	feat2 = extract(args.imgs[1], args, model, device)
+	# image1 = np.array(Image.open(args.imgs[0]))
+	# image2 = np.array(Image.open(args.imgs[1]))
+
+	image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((500, 500)))
+	image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((500, 500)))
+
+	image1 = image1[:, :, np.newaxis]
+	image1 = np.repeat(image1, 3, -1)
+
+	image2 = image2[:, :, np.newaxis]
+	image2 = np.repeat(image2, 3, -1)
+
+	# cv2.imshow("Image", image1)
+	# cv2.waitKey(0)
+	# exit(1)
+
+	feat1 = extract(image1, args, model, device)
+	feat2 = extract(image2, args, model, device)
 	print("Features extracted.")
 
-	drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
+	drawMatches(image1, image2, feat1, feat2)
+	# drawMatches2(image1, image2, feat1, feat2)
 
-	drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)
+
+	# feat1 = extract(args.imgs[0], args, model, device)
+	# feat2 = extract(args.imgs[1], args, model, device)
+	# print("Features extracted.")
+
+	# drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
+
+	# drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)

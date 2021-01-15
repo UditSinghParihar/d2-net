@@ -7,7 +7,8 @@
 	
 	3. `python train2.py --imgPairs /home/dhagash/udit/d2-net/data_gazebo/img_pairs.csv --poses /home/dhagash/udit/d2-net/data_gazebo/poses2W.npy --K /home/dhagash/udit/d2-net/data_gazebo/K.npy --dataset_path /home/dhagash/udit/d2-net/data_gazebo --plot`  
 
-	4. `python train2.py --dataset_path /scratch/dhagash/phototourism/brandenburg_gate/dense/images/ --plot`  
+	4. `python train2.py --dataset_path /scratch/udit/phototourism/brandenburg_gate/dense/images/ --plot`  
+	5. `python train2.py --dataset_path /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top/ --dataset_path2 /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top/ --plot`  
 
 2. Training would generate:  
 	1. `train_vis/ checkpoints/ log.txt`
@@ -58,6 +59,11 @@
 15. Viewing image pairs:  
 	1. `python viewPairs.py imagePairsOxford.csv`  
   
+16. Accessing tensorBoard on local machine while training on server:  
+	1. `ssh -L localhost:16006:localhost:6006 udit@blue.iiit.ac.in`  
+	2. `tensorboard --logdir runs/`  # On Server
+	3. `http://localhost:16006/`   # On Local machine
+
 
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)

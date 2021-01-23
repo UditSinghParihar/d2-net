@@ -83,7 +83,7 @@ def getTimePairs(XWorld, YWorld, data):
 	pairs = []
 	dist = 9
 
-	for i in range(200, len(XWorld)-80):
+	for i in range(250, len(XWorld)-250, 5):
 		for j in range(i, len(XWorld)):
 			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > dist):
 				pairs.append((int(data[i][0]), int(data[j][0])))
@@ -99,13 +99,29 @@ def natural_sort(l):
 
 
 def getClosest(imgs, time):
-	# print(len(imgs), time)
 	dist = [np.abs(time-img) for img in imgs]
 
-	return imgs[dist.index(min(dist))]
+	probMatches = []
+
+	gtIdx = dist.index(min(dist))
+	probMatches.append(imgs[gtIdx])
+
+	for idx in range(gtIdx, gtIdx-125, -5):
+		if(idx<0 or idx>=len(imgs)):
+			continue
+		
+		probMatches.append(imgs[idx])
+
+	for idx in range(gtIdx, gtIdx+125, 5):
+		if(idx<0 or idx>=len(imgs)):
+			continue
+
+		probMatches.append(imgs[idx])
+
+	return imgs[gtIdx], probMatches
 
 
-def getImgPairs(frontImgs, rearImgs, timePairs):
+def getProbPairs(frontImgs, rearImgs, timePairs):
 	frontImgs = [int(img.replace('.png', '')) for img in frontImgs]
 	rearImgs = [int(img.replace('.png', '')) for img in rearImgs]
 	
@@ -116,32 +132,40 @@ def getImgPairs(frontImgs, rearImgs, timePairs):
 
 	for i in range(len(frontTime)):
 		frontImg = str(frontTime[i]) + ".png"
-		rearImg = str(getClosest(rearImgs, rearTime[i])) + ".png"
 
-		imgPairs.append((os.path.join(frontDir, frontImg), os.path.join(rearDir, rearImg)))
+		gtImg, probMatches = getClosest(rearImgs, rearTime[i])
+
+		probImgs = []
+		for time in probMatches:
+			rearImg = str(time) + ".png"
+			probImgs.append(os.path.join(rearDir, rearImg))
+
+		imgPairs.append((os.path.join(frontDir, frontImg), probImgs))
 
 	return imgPairs
 
 
 def writePairs(pairs):
-	with open('imagePairsOxford.csv', 'w', newline='') as file:
+	with open('probPairs.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
-		writer.writerow(['front', 'rear'])
+
+		title = []
+		title.append('front')
+
+		numRear = len(pairs[0][1])
+		for i in range(numRear):
+			title.append('rear' + str(i))
+
+		writer.writerow(title)
 
 		for pair in pairs:
-			writer.writerow([pair[0], pair[1]])
+			row = []
+			row.append(pair[0])
 
+			for img in pair[1]:
+				row.append(img)
 
-def drawPairs(pairs):
-	fig, ax = plt.subplots(1, 2)
-
-	for pair in pairs:
-		imf = Image.open(pair[0])
-		imr = Image.open(pair[1])
-
-		ax[0].imshow(imf)
-		ax[1].imshow(imr)
-		plt.pause(0.000001)
+			writer.writerow(row)
 
 
 if __name__ == '__main__':
@@ -153,15 +177,15 @@ if __name__ == '__main__':
 	trans = convert2World(data)
 
 	XWorld, YWorld, ZWorld = getXYZ(trans)
-	draw(XWorld, YWorld)
+	# draw(XWorld, YWorld)
 
 	timePairs = getTimePairs(XWorld, YWorld, data)
 
 	frontImgs = natural_sort(os.listdir(frontDir))
 	rearImgs = natural_sort(os.listdir(rearDir))
 
-	imgPairs = getImgPairs(frontImgs, rearImgs, timePairs)
+	imgPairs = getProbPairs(frontImgs, rearImgs, timePairs)
 
-	# writePairs(imgPairs)
+	writePairs(imgPairs)
 
 	# drawPairs(imgPairs)	

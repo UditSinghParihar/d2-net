@@ -27,13 +27,13 @@ from skimage.transform import ProjectiveTransform, AffineTransform
 
 
 parser = argparse.ArgumentParser(description='Feature extraction script')
-parser.add_argument('dir', type=str)
+parser.add_argument('--dir', type=str)
 parser.add_argument(
 	'--preprocessing', type=str, default='caffe',
 	help='image preprocessing (caffe or torch)'
 )
 
-WEIGHTS = '/home/udit/udit/d2-net/results/train_corr18_stability_term/checkpoints/d2.09.pth'
+WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
 
 parser.add_argument(
 	'--model_file', type=str, default=WEIGHTS,

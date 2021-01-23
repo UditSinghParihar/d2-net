@@ -156,7 +156,7 @@ class PhotoTourism(Dataset):
 			img1 = np.array(img1)
 			img2 = np.array(img2)
 
-			pos1, pos2 =  self.getGrid(img1, img2, minCorr=30)
+			pos1, pos2 =  self.getGrid(img1, img2, minCorr=120)
 
 			if(len(pos1) == 0 or len(pos2) == 0):
 				continue

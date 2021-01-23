@@ -54,7 +54,8 @@
 	1. `python play_images.py ../../overcast/2014-06-26-09-24-58/stereo/centre/ --models_dir ../models/`  
 
 14. Generating image pairs from front and rear camera:  
-	1. `python getPairsOxford.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_rgb /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_rear_rgb`  
+	1. `python getPairsOxford.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_rgb /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_rear_rgb`    
+	2. `python gpsPrior.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_rgb /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_rear_rgb`  
 
 15. Viewing image pairs:  
 	1. `python viewPairs.py imagePairsOxford.csv`  
@@ -64,7 +65,9 @@
 	2. `tensorboard --logdir runs/`  # On Server
 	3. `http://localhost:16006/`   # On Local machine
 
-
+17. VPR performance benchmark:  
+	1. `python vprPairs.py dataGenerate/probPairs.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/front_top' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/rear_top'`    
+	2. `python saveFeatures.py --dir '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/front_top'`  
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 

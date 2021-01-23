@@ -44,7 +44,8 @@ parser.add_argument(
 # WEIGHTS = 'results/train_corr16_gz_15ep_curriculum/checkpoints/d2.15.pth'
 # WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_allRoad/d2.10.pth'
 # WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_crop/d2.10.pth'
-WEIGHTS = '/home/udit/udit/d2-net/results/train_corr18_stability_term/checkpoints/d2.09.pth'
+# WEIGHTS = '/home/udit/udit/d2-net/results/train_corr18_stability_term/checkpoints/d2.09.pth'
+WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
 
 parser.add_argument(
 	'--model_file', type=str, default=WEIGHTS,

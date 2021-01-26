@@ -1,4 +1,3 @@
-# import argparse
 import numpy as np
 import scipy
 from tqdm import tqdm
@@ -38,93 +37,6 @@ def readPairs(file):
 	return probPairs
 
 
-# def extract(image, model, device, preprocessing, multiscale):
-# 	if len(image.shape) == 2:
-# 		image = image[:, :, np.newaxis]
-# 		image = np.repeat(image, 3, -1)
-
-# 	resized_image = image
-	
-# 	fact_i = image.shape[0] / resized_image.shape[0]
-# 	fact_j = image.shape[1] / resized_image.shape[1]
-
-# 	input_image = preprocess_image(
-# 		resized_image,
-# 		preprocessing=preprocessing
-# 	)
-# 	with torch.no_grad():
-# 		if multiscale:
-# 			keypoints, scores, descriptors = process_multiscale(
-# 				torch.tensor(
-# 					input_image[np.newaxis, :, :, :].astype(np.float32),
-# 					device=device
-# 				),
-# 				model
-# 			)
-# 		else:
-# 			keypoints, scores, descriptors = process_multiscale(
-# 				torch.tensor(
-# 					input_image[np.newaxis, :, :, :].astype(np.float32),
-# 					device=device
-# 				),
-# 				model,
-# 				scales=[1]
-# 			)
-
-# 	keypoints[:, 0] *= fact_i
-# 	keypoints[:, 1] *= fact_j
-# 	keypoints = keypoints[:, [1, 0, 2]]
-
-# 	feat = {}
-# 	feat['keypoints'] = keypoints
-# 	feat['scores'] = scores
-# 	feat['descriptors'] = descriptors
-
-# 	return feat
-
-
-# def extractFeat(probPairs):
-# 	use_cuda = torch.cuda.is_available()
-# 	device = torch.device("cuda:0" if use_cuda else "cpu")
-# 	weights = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
-# 	preprocessing = 'caffe'
-# 	multiscale = False
-
-# 	model = D2Net(
-# 		model_file=weights,
-# 		use_relu=True,
-# 		use_cuda=use_cuda
-# 	)
-
-# 	frontDict = {}
-# 	rearDict = {}
-
-	# for pair in tqdm(probPairs, total=len(probPairs)):
-	# 	front = pair[0]
-
-	# 	if(front not in frontDict):
-	# 		image = np.array(Image.open(front).convert('L'))
-	# 		image = image[:, :, np.newaxis]
-	# 		image = np.repeat(image, 3, -1)
-
-	# 		frontDict[front] = extract(image, model, device, preprocessing, multiscale)
-
-	# for pair in tqdm(probPairs, total=len(probPairs)):
-	# 	for i in range(1, len(pair)):
-	# 		rear = pair[i]
-
-	# 		if(rear not in rearDict):
-	# 			image = np.array(Image.open(rear).convert('L'))
-	# 			image = image[:, :, np.newaxis]
-	# 			image = np.repeat(image, 3, -1)
-
-	# 			rearDict[rear] = extract(image, model, device, preprocessing, multiscale)
-
-# 	print("Features extracted.")
-
-# 	return frontDict, rearDict
-
-
 def loadFeat(probPairs, frontDir, rearDir):
 		frontDict = {}
 		rearDict = {}
@@ -144,7 +56,55 @@ def loadFeat(probPairs, frontDir, rearDir):
 					rearFeat = rearImg.replace('png', 'd2-net')
 					rearDict[rearImg] = np.load(rearFeat)
 
+		print("Features loaded.")
+
 		return frontDict, rearDict
+
+
+def numInliers(feat1, feat2):
+	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
+
+	keypoints_left = feat1['keypoints'][matches[:, 0], : 2]
+	keypoints_right = feat2['keypoints'][matches[:, 1], : 2]
+	np.random.seed(0)
+
+	model, inliers = ransac(
+		(keypoints_left, keypoints_right),
+		AffineTransform, min_samples=4,
+		residual_threshold=12, max_trials=500
+	)
+
+	n_inliers = np.sum(inliers)
+
+	return n_inliers, matches
+
+
+def getPairs(probPairs, frontDict, rearDict):
+	matches = []
+
+	for pair in tqdm(probPairs, total=len(probPairs)):
+		frontImg = pair[0]
+		frontFeat = frontDict[frontImg]
+
+		maxInliers = -100
+		maxIdx = -1
+
+		for i in range(1, len(pair)):
+			rearImg = pair[i]
+			rearFeat = rearDict[rearImg]
+	
+			inliers, denseMatches = numInliers(frontFeat, rearFeat)
+			print("Inliers:", inliers, denseMatches.shape)
+			
+			if(maxInliers < inliers):
+				maxInliers = inliers
+				maxIdx = i
+
+		match = (frontImg, pair[maxIdx], maxInliers)
+		print(match)
+		matches.append(match)
+
+	return matches
 
 
 if __name__ == '__main__':
@@ -155,3 +115,7 @@ if __name__ == '__main__':
 	probPairs = readPairs(pairsFile)
 
 	frontDict, rearDict = loadFeat(probPairs, frontDir, rearDir)
+
+	getPairs(probPairs, frontDict, rearDict)
+
+

@@ -106,13 +106,13 @@ def getClosest(imgs, time):
 	gtIdx = dist.index(min(dist))
 	probMatches.append(imgs[gtIdx])
 
-	for idx in range(gtIdx, gtIdx-125, -5):
+	for idx in range(gtIdx-5, gtIdx-130, -5):
 		if(idx<0 or idx>=len(imgs)):
 			continue
 		
 		probMatches.append(imgs[idx])
 
-	for idx in range(gtIdx, gtIdx+125, 5):
+	for idx in range(gtIdx+5, gtIdx+130, 5):
 		if(idx<0 or idx>=len(imgs)):
 			continue
 
@@ -181,8 +181,8 @@ if __name__ == '__main__':
 
 	timePairs = getTimePairs(XWorld, YWorld, data)
 
-	frontImgs = natural_sort(os.listdir(frontDir))
-	rearImgs = natural_sort(os.listdir(rearDir))
+	frontImgs = natural_sort([file for file in os.listdir(frontDir) if '.png' in file])
+	rearImgs = natural_sort([file for file in os.listdir(rearDir) if '.png' in file])
 
 	imgPairs = getProbPairs(frontImgs, rearImgs, timePairs)
 

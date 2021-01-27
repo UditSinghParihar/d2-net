@@ -70,6 +70,11 @@
 	2. `python saveFeatures.py --dir '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/front_top'`  
 	3. ` python testMatcher.py '/scratch/udit/robotcar/overcast/ipm/front/25.png' '/scratch/udit/robotcar/overcast/ipm/rear/25.png'`  
 
+18. IPM generation:  
+	1. `python savePairs.py '/home/udit/udit/d2-net/dataGenerate/imagePairsOxford.csv'`  
+	2. `python saveIpm.py rootDir cameraCfg.json`	
+
+
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 
 This repository contains the implementation of the following paper:

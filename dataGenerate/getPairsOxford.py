@@ -162,6 +162,6 @@ if __name__ == '__main__':
 
 	imgPairs = getImgPairs(frontImgs, rearImgs, timePairs)
 
-	# writePairs(imgPairs)
+	writePairs(imgPairs)
 
 	# drawPairs(imgPairs)	

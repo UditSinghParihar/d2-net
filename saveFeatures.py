@@ -140,14 +140,17 @@ if __name__ == '__main__':
 	imgFiles = [os.path.join(args.dir, img) for img in imgFiles]
 
 	for imgFile in tqdm(imgFiles, total=len(imgFiles)):
-		image = np.array(Image.open(imgFile).convert('L'))
+		# image = np.array(Image.open(imgFile).convert('L'))
+		# image = image[:, :, np.newaxis]
+		# image = np.repeat(image, 3, -1)
+
+		image = np.array(Image.open(imgFile).convert('L').resize((400, 400)))
 		image = image[:, :, np.newaxis]
 		image = np.repeat(image, 3, -1)
 
 		feat = extract(image, args, model, device)
 
-		path = imgFile.replace('.png', '') + args.output_extension
-		
+		path = imgFile.replace('.png', '') + args.output_extension		
 		with open(path, 'wb') as output_file:
 			np.savez(
 				output_file,
@@ -160,3 +163,4 @@ if __name__ == '__main__':
 		# ax.imshow(image)
 		# ax.set_title('Front View')
 		# plt.show()
+		

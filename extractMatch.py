@@ -7,7 +7,7 @@ import imageio
 import torch
 
 from tqdm import tqdm
-
+import time
 import scipy
 import scipy.io
 import scipy.misc
@@ -138,10 +138,6 @@ def extract(image, args, model, device):
 
 
 def	drawMatches(image1, image2, feat1, feat2):
-# def	drawMatches(file1, file2, feat1, feat2):
-	# image1 = np.array(Image.open(file1))
-	# image2 = np.array(Image.open(file2))
-
 	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
 	print('Number of raw matches: %d.' % matches.shape[0])
 
@@ -193,6 +189,92 @@ def	drawMatches2(image1, image2, feat1, feat2):
 	cv2.waitKey(0)
 
 
+def drawMatches3(image1, image2, feat1, feat2, matcher="BF"):
+	if(matcher == "BF"):
+
+		t0 = time.time()
+		bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+		matches = bf.match(feat1['descriptors'], feat2['descriptors'])
+		matches = sorted(matches, key=lambda x:x.distance)
+		t1 = time.time()
+		print("Time to extract matches: ", t1-t0)
+
+		print("Number of raw matches:", len(matches))
+
+		match1 = [m.queryIdx for m in matches]
+		match2 = [m.trainIdx for m in matches]
+
+		keypoints_left = feat1['keypoints'][match1, : 2]
+		keypoints_right = feat2['keypoints'][match2, : 2]
+
+		np.random.seed(0)
+
+		t0 = time.time()
+		model, inliers = ransac(
+			(keypoints_left, keypoints_right),
+			AffineTransform, min_samples=4,
+			residual_threshold=8, max_trials=10000
+		)
+		t1 = time.time()
+		print("Time for ransac: ", t1-t0)
+
+		n_inliers = np.sum(inliers)
+		print('Number of inliers: %d.' % n_inliers)
+
+		inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_left[inliers]]
+		inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_right[inliers]]
+		placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
+		image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
+
+		plt.figure(figsize=(20, 20))
+		plt.imshow(image3)
+		plt.axis('off')
+		plt.show()
+
+	elif(matcher == "FLANN"):
+
+		FLANN_INDEX_KDTREE = 0
+		index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+		search_params = dict(checks = 50)
+
+		t0 = time.time()
+		flann = cv2.FlannBasedMatcher(index_params, search_params)
+		matches = flann.knnMatch(feat1['descriptors'], feat2['descriptors'],k=2)
+		t1 = time.time()
+		print("Time to extract matches: ", t1-t0)
+
+		print("Number of raw matches:", len(matches))
+
+		t0 = time.time()
+		good = []
+		for m, n in matches:
+			if m.distance < 0.9*n.distance:
+				good.append(m)
+		matches = good
+		t1 = time.time()
+		print("Time for outlier rejection: ", t1-t0)
+		print("Number of inliers: ", len(matches))
+
+		match1 = [m.queryIdx for m in matches]
+		match2 = [m.trainIdx for m in matches]
+
+		keypoints_left = feat1['keypoints'][match1, : 2].T
+		keypoints_right = feat2['keypoints'][match2, : 2].T
+
+		for i in range(keypoints_left.shape[1]):
+			image1 = cv2.circle(image1, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), 2, (0, 0, 255), 4)
+		for i in range(keypoints_right.shape[1]):
+			image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
+
+		im4 = cv2.hconcat([image1, image2])	
+
+		for i in range(keypoints_left.shape[1]):
+			im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
+
+		cv2.imshow("Image_lines", im4)
+		cv2.waitKey(0)
+
+
 if __name__ == '__main__':
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -207,8 +289,8 @@ if __name__ == '__main__':
 	# image1 = np.array(Image.open(args.imgs[0]))
 	# image2 = np.array(Image.open(args.imgs[1]))
 
-	image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((500, 500)))
-	image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((500, 500)))
+	image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
+	image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
 
 	image1 = image1[:, :, np.newaxis]
 	image1 = np.repeat(image1, 3, -1)
@@ -226,12 +308,4 @@ if __name__ == '__main__':
 
 	drawMatches(image1, image2, feat1, feat2)
 	# drawMatches2(image1, image2, feat1, feat2)
-
-
-	# feat1 = extract(args.imgs[0], args, model, device)
-	# feat2 = extract(args.imgs[1], args, model, device)
-	# print("Features extracted.")
-
-	# drawMatches(args.imgs[0], args.imgs[1], feat1, feat2)
-
-	# drawMatches2(args.imgs[0], args.imgs[1], feat1, feat2)
+	drawMatches3(image1, image2, feat1, feat2, matcher="BF")

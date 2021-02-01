@@ -68,7 +68,10 @@
 17. VPR performance benchmark:  
 	1. `python vprPairs.py dataGenerate/probPairs.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/front_top' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/rear_top'`    
 	2. `python saveFeatures.py --dir '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/front_top'`  
-	3. ` python testMatcher.py '/scratch/udit/robotcar/overcast/ipm/front/25.png' '/scratch/udit/robotcar/overcast/ipm/rear/25.png'`  
+	3. `python testMatcher.py '/scratch/udit/robotcar/overcast/ipm/front/25.png' '/scratch/udit/robotcar/overcast/ipm/rear/25.png'`  
+	4. `python evaluate/plotCorr.py dataGenerate/vprOutput.csv`  
+	5. `python evaluate/evalVPR.py dataGenerate/probPairs.csv dataGenerate/vprOutput.csv`  
+	6. python extractDir.py --dir1 '/scratch/udit/robotcar/overcast/ipm2/front_top' --dir2 '/scratch/udit/robotcar/overcast/ipm2/rear_top'
 
 18. IPM generation:  
 	1. `python savePairs.py '/home/udit/udit/d2-net/dataGenerate/imagePairsOxford.csv'`  

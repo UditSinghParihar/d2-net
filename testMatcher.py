@@ -301,10 +301,10 @@ if __name__ == '__main__':
 	# image1 = np.array(Image.open(args.imgs[0]).convert('L'))
 	# image2 = np.array(Image.open(args.imgs[1]).convert('L'))
 
-	image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((500, 500)))
+	image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
 	image1 = image1[:, :, np.newaxis]
 	image1 = np.repeat(image1, 3, -1)
-	image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((500, 500)))
+	image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
 	image2 = image2[:, :, np.newaxis]
 	image2 = np.repeat(image2, 3, -1)
 
@@ -323,5 +323,5 @@ if __name__ == '__main__':
 	# exit(1)
 
 	# drawMatches2(image1, image2, feat1, feat2)
-	drawMatches(image1, image2, feat1, feat2)
+	# drawMatches(image1, image2, feat1, feat2)
 	drawMatches3(image1, image2, feat1, feat2, matcher="BF")

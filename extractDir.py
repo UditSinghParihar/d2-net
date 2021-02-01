@@ -125,6 +125,85 @@ def extract(image, args, model, device):
 	return feat
 
 
+def draw(kp1, kp2, good, frontImg, rearImg):
+	MIN_MATCH_COUNT = 1
+
+	if len(good) > MIN_MATCH_COUNT:
+		src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+		dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+		M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+		matchesMask = mask.ravel().tolist()
+		draw_params = dict(matchColor = (0,255,0),
+						   singlePointColor = None,
+						   matchesMask = matchesMask,
+						   flags = 2)
+		img3 = cv2.drawMatches(frontImg,kp1,rearImg,kp2,good,None,**draw_params)
+		# cv2.imshow('Matches', img3)
+		# cv2.waitKey(0)
+
+	else:
+		print( "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT))
+		matchesMask = None
+		draw_params = dict(matchColor = (0,255,0),
+						   singlePointColor = None,
+						   matchesMask = matchesMask,
+						   flags = 2)
+		img3 = cv2.drawMatches(frontImg,kp1,rearImg,kp2,good,None,**draw_params)
+		# cv2.imshow('Matches', img3)
+		# cv2.waitKey(0)
+
+	return img3
+
+
+def drawMatches4(frontImg, rearImg):
+	surf = cv2.xfeatures2d.SURF_create(100)
+	# surf = cv2.xfeatures2d.SIFT_create()
+
+	kp1, des1 = surf.detectAndCompute(frontImg, None)
+	kp2, des2 = surf.detectAndCompute(rearImg, None)
+	FLANN_INDEX_KDTREE = 0
+	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+	search_params = dict(checks = 50)
+	flann = cv2.FlannBasedMatcher(index_params, search_params)
+	matches = flann.knnMatch(des1,des2,k=2)
+	good = []
+	for m, n in matches:
+		if m.distance < 0.7*n.distance:
+			good.append(m)
+
+	img3 = draw(kp1, kp2, good, frontImg, rearImg)
+
+	n_inliers = len(good)
+
+	return img3, n_inliers, matches
+
+
+def	drawMatches1(image1, image2, feat1, feat2):
+	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
+	print('Number of raw matches: %d.' % matches.shape[0])
+
+	keypoints_left = feat1['keypoints'][matches[:, 0], : 2]
+	keypoints_right = feat2['keypoints'][matches[:, 1], : 2]
+	np.random.seed(0)
+	model, inliers = ransac(
+		(keypoints_left, keypoints_right),
+		AffineTransform, min_samples=4,
+		residual_threshold=8, max_trials=10000
+	)
+	n_inliers = np.sum(inliers)
+	print('Number of inliers: %d.' % n_inliers)
+
+	inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_left[inliers]]
+	inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_right[inliers]]
+	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
+	image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
+
+	plt.figure(figsize=(20, 20))
+	plt.imshow(image3)
+	plt.axis('off')
+	plt.show()
+
+
 def drawMatches3(image1, image2, feat1, feat2):
 	t0 = time.time()
 	bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
@@ -160,16 +239,16 @@ def drawMatches3(image1, image2, feat1, feat2):
 	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
 	image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
 
-	# plt.figure(figsize=(20, 20))
-	# plt.imshow(image3)
-	# plt.axis('off')
-	# plt.show()
+	plt.figure(figsize=(20, 20))
+	plt.imshow(image3)
+	plt.axis('off')
+	plt.show()
 
 	return image3
 
 
 if __name__ == '__main__':
-	outDir = '/scratch/udit/robotcar/overcast/ipm2/d2net/'
+	outDir = '/scratch/udit/robotcar/overcast/ipm2/surf_400/'
 
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -188,10 +267,10 @@ if __name__ == '__main__':
 		frontFile = os.path.join(args.dir1, frontImgs[i])
 		rearFile = os.path.join(args.dir2, rearImgs[i])
 
-		image1 = np.array(Image.open(frontFile).convert('L').resize((500, 500)))
+		image1 = np.array(Image.open(frontFile).convert('L').resize((400, 400)))
 		image1 = image1[:, :, np.newaxis]
 		image1 = np.repeat(image1, 3, -1)
-		image2 = np.array(Image.open(rearFile).convert('L').resize((500, 500)))
+		image2 = np.array(Image.open(rearFile).convert('L').resize((400, 400)))
 		image2 = image2[:, :, np.newaxis]
 		image2 = np.repeat(image2, 3, -1)
 
@@ -206,6 +285,8 @@ if __name__ == '__main__':
 		print("Time for features extraction: ", t1-t0)
 		# print("Features extracted.")
 		
-		image3 = drawMatches3(image1, image2, feat1, feat2)
+		# image3 = drawMatches3(image1, image2, feat1, feat2)
+		image3, _ , _ = drawMatches4(image1, image2)
+
 		outFile = os.path.join(outDir, str(i+1)+'.png')
 		cv2.imwrite(outFile, image3)

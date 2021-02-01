@@ -4,6 +4,7 @@ from tqdm import tqdm
 import csv
 import os
 from sys import exit, argv
+import time
 import torch
 
 import imageio
@@ -71,7 +72,31 @@ def numInliers(feat1, feat2):
 	model, inliers = ransac(
 		(keypoints_left, keypoints_right),
 		AffineTransform, min_samples=4,
-		residual_threshold=12, max_trials=500
+		residual_threshold=8, max_trials=10000
+	)
+
+	n_inliers = np.sum(inliers)
+
+	return n_inliers, matches
+
+
+def numInliers2(feat1, feat2):
+	bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+	matches = bf.match(feat1['descriptors'], feat2['descriptors'])
+	matches = sorted(matches, key=lambda x:x.distance)
+
+	match1 = [m.queryIdx for m in matches]
+	match2 = [m.trainIdx for m in matches]
+
+	keypoints_left = feat1['keypoints'][match1, : 2]
+	keypoints_right = feat2['keypoints'][match2, : 2]
+
+	np.random.seed(0)
+
+	model, inliers = ransac(
+		(keypoints_left, keypoints_right),
+		AffineTransform, min_samples=4,
+		residual_threshold=8, max_trials=10000
 	)
 
 	n_inliers = np.sum(inliers)
@@ -93,18 +118,30 @@ def getPairs(probPairs, frontDict, rearDict):
 			rearImg = pair[i]
 			rearFeat = rearDict[rearImg]
 	
-			inliers, denseMatches = numInliers(frontFeat, rearFeat)
-			print("Inliers:", inliers, denseMatches.shape)
+			inliers, denseMatches = numInliers2(frontFeat, rearFeat)
+			# print("Inliers:", inliers, len(denseMatches))
+			# print("Inliers:", inliers, denseMatches.shape)
 			
 			if(maxInliers < inliers):
 				maxInliers = inliers
 				maxIdx = i
 
-		match = (frontImg, pair[maxIdx], maxInliers)
+		match = [frontImg, pair[maxIdx], str(maxInliers)]
 		print(match)
 		matches.append(match)
 
 	return matches
+
+
+def writeMatches(matches):
+	with open('dataGenerate/vprOutput.csv', 'w', newline='') as file:
+		writer = csv.writer(file)
+
+		title = ['FrontImage', 'RearImage', 'Correspondences']
+		writer.writerow(title)
+
+		for match in matches:
+			writer.writerow(match)
 
 
 if __name__ == '__main__':
@@ -116,6 +153,7 @@ if __name__ == '__main__':
 
 	frontDict, rearDict = loadFeat(probPairs, frontDir, rearDir)
 
-	getPairs(probPairs, frontDict, rearDict)
+	matches = getPairs(probPairs, frontDict, rearDict)
+	print(matches)
 
-
+	# writeMatches(matches)

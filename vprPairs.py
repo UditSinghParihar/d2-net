@@ -133,11 +133,65 @@ def getPairs(probPairs, frontDict, rearDict):
 	return matches
 
 
+def getPairsTopk(probPairs, frontDict, rearDict, topK=5):
+	matches = []
+
+	for pair in tqdm(probPairs, total=len(probPairs)):
+		frontImg = pair[0]
+		frontFeat = frontDict[frontImg]
+
+		maxInliers = -100
+		maxIdx = -1
+		inliersCount = {}
+
+		for i in range(1, len(pair)):
+			rearImg = pair[i]
+			rearFeat = rearDict[rearImg]
+	
+			inliers, denseMatches = numInliers2(frontFeat, rearFeat)
+			# print("Inliers:", inliers, len(denseMatches))
+			# print("Inliers:", inliers, denseMatches.shape)
+			
+			inliersCount[rearImg] = inliers
+
+		inliersCount = sorted(inliersCount.items(), key=lambda kv:(kv[1], kv[0]), reverse=True)
+		
+		match = []
+		match.append(frontImg)
+
+		for i, (rearImg, numInliers) in enumerate(inliersCount):
+			match.append(rearImg)
+			match.append(numInliers)
+
+			if(i == (topK-1)):
+				break
+
+		print(match[0:3])
+		matches.append(match)
+
+	return matches
+
+
 def writeMatches(matches):
 	with open('dataGenerate/vprOutput.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 
 		title = ['FrontImage', 'RearImage', 'Correspondences']
+		writer.writerow(title)
+
+		for match in matches:
+			writer.writerow(match)
+
+
+def writeMatchesTopK(matches):
+	with open('dataGenerate/vprOutputTopK.csv', 'w', newline='') as file:
+		writer = csv.writer(file)
+
+		title = ['FrontImage', 'RearImage1', 'Correspondences1',
+		'RearImage2', 'Correspondences2',
+		'RearImage3', 'Correspondences3',
+		'RearImage4', 'Correspondences4',
+		'RearImage5', 'Correspondences5']
 		writer.writerow(title)
 
 		for match in matches:
@@ -153,7 +207,9 @@ if __name__ == '__main__':
 
 	frontDict, rearDict = loadFeat(probPairs, frontDir, rearDir)
 
-	matches = getPairs(probPairs, frontDict, rearDict)
+	# matches = getPairs(probPairs, frontDict, rearDict)
+	matches = getPairsTopk(probPairs, frontDict, rearDict)
 	print(matches)
 
 	# writeMatches(matches)
+	writeMatchesTopK(matches)

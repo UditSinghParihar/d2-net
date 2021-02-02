@@ -37,7 +37,8 @@ parser.add_argument(
 	help='image preprocessing (caffe or torch)'
 )
 
-WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
+# WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
+WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_resize/d2.15.pth'
 
 parser.add_argument(
 	'--model_file', type=str, default=WEIGHTS,
@@ -239,16 +240,16 @@ def drawMatches3(image1, image2, feat1, feat2):
 	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
 	image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
 
-	plt.figure(figsize=(20, 20))
-	plt.imshow(image3)
-	plt.axis('off')
-	plt.show()
+	# plt.figure(figsize=(20, 20))
+	# plt.imshow(image3)
+	# plt.axis('off')
+	# plt.show()
 
 	return image3
 
 
 if __name__ == '__main__':
-	outDir = '/scratch/udit/robotcar/overcast/ipm2/surf_400/'
+	outDir = '/scratch/udit/robotcar/overcast/ipm2/d2net_400_resize/'
 
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -285,8 +286,8 @@ if __name__ == '__main__':
 		print("Time for features extraction: ", t1-t0)
 		# print("Features extracted.")
 		
-		# image3 = drawMatches3(image1, image2, feat1, feat2)
-		image3, _ , _ = drawMatches4(image1, image2)
+		image3 = drawMatches3(image1, image2, feat1, feat2)
+		# image3, _ , _ = drawMatches4(image1, image2)
 
 		outFile = os.path.join(outDir, str(i+1)+'.png')
 		cv2.imwrite(outFile, image3)

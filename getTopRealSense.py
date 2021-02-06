@@ -16,41 +16,7 @@ def display(pcd, T=np.identity(4)):
 	o3d.visualization.draw_geometries([pcd, axis])
 
 
-# def readDepth(path):
-# 	# min_depth_percentile = 5
-# 	# max_depth_percentile = 95
-# 	min_depth_percentile = 1
-# 	max_depth_percentile = 99
-
-# 	with open(path, "rb") as fid:
-# 		width, height, channels = np.genfromtxt(fid, delimiter="&", max_rows=1,
-# 												usecols=(0, 1, 2), dtype=int)
-# 		fid.seek(0)
-# 		num_delimiter = 0
-# 		byte = fid.read(1)
-# 		while True:
-# 			if byte == b"&":
-# 				num_delimiter += 1
-# 				if num_delimiter >= 3:
-# 					break
-# 			byte = fid.read(1)
-# 		array = np.fromfile(fid, np.float32)
-# 	array = array.reshape((width, height, channels), order="F")
-
-# 	depth_map = np.transpose(array, (1, 0, 2)).squeeze()
-
-# 	min_depth, max_depth = np.percentile(depth_map, [min_depth_percentile, max_depth_percentile])
-# 	print(min_depth, max_depth)
-
-# 	depth_map[depth_map < min_depth] = min_depth
-# 	depth_map[depth_map > max_depth] = max_depth
-# 	# depth_map[depth_map < min_depth] = 0
-# 	# depth_map[depth_map > max_depth] = 0
-
-# 	return depth_map
-
-
-def readDepth2(depthFile):
+def readDepth(depthFile):
 	depth = Image.open(depthFile)
 	if depth.mode != "I":
 		raise Exception("Depth image is not in intensity format")
@@ -59,17 +25,16 @@ def readDepth2(depthFile):
 
 
 def getPointCloud(rgbFile, depthFile):
-	pts = [(275, 462), (435, 275), (465, 27), (41, 197)]
-	# pts = [(291, 317), (579, 462), (605, 150), (285, 92)]
-	poly = Polygon(pts)
+	# pts = [(275, 462), (435, 275), (465, 27), (41, 197)]
+	# poly = Polygon(pts)
 
-	thresh = 5.6
-	# thresh = 15.0
+	# thresh = 5.6
+	thresh = 15.0
 
-	depth = readDepth2(depthFile)
+	depth = readDepth(depthFile)
 	rgb = Image.open(rgbFile)
 
-	# cv2.imshow("Image",  np.asarray(rgb))
+	# cv2.imshow("Image",  np.array(cv2.cvtColor(np.array(rgb), cv2.COLOR_BGR2RGB)))
 	# cv2.waitKey(0)
 
 	# print(type(depth))
@@ -84,9 +49,9 @@ def getPointCloud(rgbFile, depthFile):
 	for v in range(depth.shape[0]):
 		for u in range(depth.shape[1]):
 			
-			p = Point(u, v)
-			if not (p.within(poly)):
-				continue
+			# p = Point(u, v)
+			# if not (p.within(poly)):
+			# 	continue
 
 			Z = depth[v, u] / scalingFactor
 			if Z==0: continue
@@ -207,17 +172,17 @@ if __name__ == '__main__':
 	rgbFile = argv[1]
 	depthFile = argv[2]
 
-	# Medium colmap
-	focalX = 607.8118896484375
-	focalY = 606.7265625
-	centerX = 324.09228515625
-	centerY = 235.1124725341797
+	# Realsense D415
+	# focalX = 607.8118896484375
+	# focalY = 606.7265625
+	# centerX = 324.09228515625
+	# centerY = 235.1124725341797
 
-	# High colmap
-	# focalX = 1040.11
-	# focalY = 1040.11
-	# centerX = 1116.5
-	# centerY = 559
+	# Realsense D455
+	focalX = 382.1996765136719
+	focalY = 381.8395690917969
+	centerX = 312.7102355957031
+	centerY = 247.72047424316406
 
 	scalingFactor = 1000.0
 
@@ -232,8 +197,7 @@ if __name__ == '__main__':
 	T = np.identity(4)
 	T[0:3, 0:3] = rotationMatrix
 
-	# display(pcd)
+	display(pcd)
 	# display(pcd, T)
 
-	# # getImg(pcd, T)
 	getImgHomo(pcd, T, srcPxs, rgbFile)

@@ -37,7 +37,7 @@ parser.add_argument(
 # 	help='path to the full model'
 # )
 
-# WEIGHTS = 'models/d2_tf.pth'
+WEIGHTS = 'models/d2_tf.pth'
 # WEIGHTS = '/home/dhagash/d2-net/d2-net_udit/checkpoints/checkpoint_PT_highRot_epoch/d2.15.pth'
 # WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
 # WEIGHTS = 'results/train_corr15_gazebo/checkpoints/d2.10.pth'
@@ -45,7 +45,7 @@ parser.add_argument(
 # WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_allRoad/d2.10.pth'
 # WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_crop/d2.10.pth'
 # WEIGHTS = '/home/udit/udit/d2-net/results/train_corr18_stability_term/checkpoints/d2.09.pth'
-WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
+# WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
 
 parser.add_argument(
 	'--model_file', type=str, default=WEIGHTS,
@@ -137,7 +137,7 @@ def extract(image, args, model, device):
 	return feat
 
 
-def	drawMatches(image1, image2, feat1, feat2):
+def	scipyD2netMatching(image1, image2, feat1, feat2):
 	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
 	print('Number of raw matches: %d.' % matches.shape[0])
 
@@ -163,7 +163,7 @@ def	drawMatches(image1, image2, feat1, feat2):
 	plt.show()
 
 
-def	drawMatches2(image1, image2, feat1, feat2):
+def	denseScipyD2netMatching(image1, image2, feat1, feat2):
 	# image1 = cv2.imread(file1)
 	# image2 = cv2.imread(file2)
 	image1 = np.array(cv2.cvtColor(np.array(image1), cv2.COLOR_BGR2RGB))
@@ -189,7 +189,7 @@ def	drawMatches2(image1, image2, feat1, feat2):
 	cv2.waitKey(0)
 
 
-def drawMatches3(image1, image2, feat1, feat2, matcher="BF"):
+def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 	if(matcher == "BF"):
 
 		t0 = time.time()
@@ -275,6 +275,60 @@ def drawMatches3(image1, image2, feat1, feat2, matcher="BF"):
 		cv2.waitKey(0)
 
 
+def draw(kp1, kp2, good, frontImg, rearImg):
+	MIN_MATCH_COUNT = 1
+
+	if len(good) > MIN_MATCH_COUNT:
+		src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+		dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+		M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+		matchesMask = mask.ravel().tolist()
+		draw_params = dict(matchColor = (0,255,0),
+						   singlePointColor = None,
+						   matchesMask = matchesMask,
+						   flags = 2)
+		img3 = cv2.drawMatches(frontImg,kp1,rearImg,kp2,good,None,**draw_params)
+		cv2.imshow('Matches', img3)
+		cv2.waitKey(0)
+
+	else:
+		print( "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT))
+		matchesMask = None
+		draw_params = dict(matchColor = (0,255,0),
+						   singlePointColor = None,
+						   matchesMask = matchesMask,
+						   flags = 2)
+		img3 = cv2.drawMatches(frontImg,kp1,rearImg,kp2,good,None,**draw_params)
+		cv2.imshow('Matches', img3)
+		cv2.waitKey(0)
+
+
+def siftMatching(frontImg, rearImg):
+	frontImg = np.array(cv2.cvtColor(np.array(frontImg), cv2.COLOR_BGR2RGB))
+	rearImg = np.array(cv2.cvtColor(np.array(rearImg), cv2.COLOR_BGR2RGB))
+
+	# surf = cv2.xfeatures2d.SURF_create()
+	surf = cv2.xfeatures2d.SIFT_create()
+
+	kp1, des1 = surf.detectAndCompute(frontImg, None)
+	kp2, des2 = surf.detectAndCompute(rearImg, None)
+	FLANN_INDEX_KDTREE = 0
+	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+	search_params = dict(checks = 50)
+	flann = cv2.FlannBasedMatcher(index_params, search_params)
+	matches = flann.knnMatch(des1,des2,k=2)
+	good = []
+	for m, n in matches:
+		if m.distance < 0.7*n.distance:
+			good.append(m)
+
+	draw(kp1, kp2, good, frontImg, rearImg)
+
+	n_inliers = len(good)
+
+	return n_inliers, matches
+
+
 if __name__ == '__main__':
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -286,17 +340,17 @@ if __name__ == '__main__':
 		use_cuda=use_cuda
 	)
 
-	# image1 = np.array(Image.open(args.imgs[0]))
-	# image2 = np.array(Image.open(args.imgs[1]))
+	image1 = np.array(Image.open(args.imgs[0]))
+	image2 = np.array(Image.open(args.imgs[1]))
 
-	image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
-	image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
+	# image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
+	# image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
 
-	image1 = image1[:, :, np.newaxis]
-	image1 = np.repeat(image1, 3, -1)
+	# image1 = image1[:, :, np.newaxis]
+	# image1 = np.repeat(image1, 3, -1)
 
-	image2 = image2[:, :, np.newaxis]
-	image2 = np.repeat(image2, 3, -1)
+	# image2 = image2[:, :, np.newaxis]
+	# image2 = np.repeat(image2, 3, -1)
 
 	# cv2.imshow("Image", image1)
 	# cv2.waitKey(0)
@@ -306,6 +360,8 @@ if __name__ == '__main__':
 	feat2 = extract(image2, args, model, device)
 	print("Features extracted.")
 
-	drawMatches(image1, image2, feat1, feat2)
-	# drawMatches2(image1, image2, feat1, feat2)
-	drawMatches3(image1, image2, feat1, feat2, matcher="BF")
+	# scipyD2netMatching(image1, image2, feat1, feat2)
+	# denseScipyD2netMatching(image1, image2, feat1, feat2)
+	# cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF")
+
+	siftMatching(image1, image2)

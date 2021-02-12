@@ -23,8 +23,8 @@ from sys import exit
 from PIL import Image
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
-from skimage.transform import ProjectiveTransform
-import cv2
+from skimage.transform import ProjectiveTransform, AffineTransform
+import time
 
 
 WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_crop/d2.10.pth'
@@ -183,6 +183,92 @@ def	drawMatches2(image1, image2, feat1, feat2):
 	cv2.waitKey(0)
 
 
+def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
+	if(matcher == "BF"):
+
+		t0 = time.time()
+		bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+		matches = bf.match(feat1['descriptors'], feat2['descriptors'])
+		matches = sorted(matches, key=lambda x:x.distance)
+		t1 = time.time()
+		print("Time to extract matches: ", t1-t0)
+
+		print("Number of raw matches:", len(matches))
+
+		match1 = [m.queryIdx for m in matches]
+		match2 = [m.trainIdx for m in matches]
+
+		keypoints_left = feat1['keypoints'][match1, : 2]
+		keypoints_right = feat2['keypoints'][match2, : 2]
+
+		np.random.seed(0)
+
+		t0 = time.time()
+		model, inliers = ransac(
+			(keypoints_left, keypoints_right),
+			AffineTransform, min_samples=4,
+			residual_threshold=8, max_trials=10000
+		)
+		t1 = time.time()
+		print("Time for ransac: ", t1-t0)
+
+		n_inliers = np.sum(inliers)
+		print('Number of inliers: %d.' % n_inliers)
+
+		inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_left[inliers]]
+		inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_right[inliers]]
+		placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
+		image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
+
+		plt.figure(figsize=(20, 20))
+		plt.imshow(image3)
+		plt.axis('off')
+		plt.show()
+
+	elif(matcher == "FLANN"):
+
+		FLANN_INDEX_KDTREE = 0
+		index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+		search_params = dict(checks = 50)
+
+		t0 = time.time()
+		flann = cv2.FlannBasedMatcher(index_params, search_params)
+		matches = flann.knnMatch(feat1['descriptors'], feat2['descriptors'],k=2)
+		t1 = time.time()
+		print("Time to extract matches: ", t1-t0)
+
+		print("Number of raw matches:", len(matches))
+
+		t0 = time.time()
+		good = []
+		for m, n in matches:
+			if m.distance < 0.9*n.distance:
+				good.append(m)
+		matches = good
+		t1 = time.time()
+		print("Time for outlier rejection: ", t1-t0)
+		print("Number of inliers: ", len(matches))
+
+		match1 = [m.queryIdx for m in matches]
+		match2 = [m.trainIdx for m in matches]
+
+		keypoints_left = feat1['keypoints'][match1, : 2].T
+		keypoints_right = feat2['keypoints'][match2, : 2].T
+
+		for i in range(keypoints_left.shape[1]):
+			image1 = cv2.circle(image1, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), 2, (0, 0, 255), 4)
+		for i in range(keypoints_right.shape[1]):
+			image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
+
+		im4 = cv2.hconcat([image1, image2])	
+
+		for i in range(keypoints_left.shape[1]):
+			im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
+
+		cv2.imshow("Image_lines", im4)
+		cv2.waitKey(0)
+
+
 if __name__ == '__main__':
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -203,6 +289,9 @@ if __name__ == '__main__':
 	image1 = Image.open(args.imgs[0])
 	image2 = image1.rotate(np.random.randint(low=90, high=270))
 
+	image1 = np.array(image1)
+	image2 = np.array(image2)
+
 	# feat1Pre = extract(np.array(image1), args, model1, device)
 	# feat2Pre = extract(np.array(image2), args, model1, device)
 
@@ -212,6 +301,8 @@ if __name__ == '__main__':
 	print("Features extracted.")
 
 	# drawMatches(image1, image2, feat1Pre, feat2Pre)
-	drawMatches(image1, image2, feat1Trained, feat2Trained)
+	# drawMatches(image1, image2, feat1Trained, feat2Trained)
 
 	# drawMatches2(image1, image2, feat1, feat2)
+
+	cv2D2netMatching(image1, image2, feat1Trained, feat2Trained, matcher="BF")

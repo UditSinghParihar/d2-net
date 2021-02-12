@@ -249,7 +249,7 @@ def drawMatches3(image1, image2, feat1, feat2):
 
 
 if __name__ == '__main__':
-	outDir = '/scratch/udit/robotcar/overcast/ipm2/d2net_400_resize/'
+	outDir = '/scratch/udit/robotcar/overcast/ipm2/d2net_400_orig/'
 
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda:0" if use_cuda else "cpu")

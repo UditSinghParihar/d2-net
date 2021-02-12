@@ -184,7 +184,7 @@ def writeMatches(matches):
 
 
 def writeMatchesTopK(matches):
-	with open('dataGenerate/vprOutputTopK.csv', 'w', newline='') as file:
+	with open('dataGenerate/vprOutputD2NetOrigTopK.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 
 		title = ['FrontImage', 'RearImage1', 'Correspondences1',

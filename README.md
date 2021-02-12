@@ -39,7 +39,6 @@
 
 10. Generating top view using rgb and depth on gazebo dataset:
 	1. `python getTopView.py data_gazebo/data5/rgb/rgb000000.jpg data_gazebo/data5/depth/depth000000.npy`  
-
 11. Conda environment:
 	1. Base environment activate: `conda activate`  
 	2. Conda environment deactivate: `conda deactivate`
@@ -47,8 +46,10 @@
 	4. Activating other conda envs: `conda activate planercnn`    
 	5. Removing conda env: `conda env remove --name ENVIRONMENT`  
 
-12. Generating top view using normal:  
+12. Generating top view using normal and bilinear interpolation:  
 	1. `python getTopViewNormal.py data_gazebo_floor/data7/rgb/rgb000000.jpg data_gazebo_floor/data7/depth/depth000000.npy`  
+	2. `python getTopNormalH.py '/home/cair/backup/d2-net/data_gazebo_floor/data7/rgb/rgb000000.jpg' '/home/cair/backup/d2-net/data_gazebo_floor/data7/depth/depth000000.npy'`  
+	3. `python getTopRealSense.py '/home/cair/backup/d2-net/dataVO/data11/rgb/rgb000000.jpg' '/home/cair/backup/d2-net/dataVO/data11/depth/depth000000.png'`  
  
 13. Undistorting and coloring raw robotcar images, using robotcar-dataset-sdk:  
 	1. `python play_images.py ../../overcast/2014-06-26-09-24-58/stereo/centre/ --models_dir ../models/`  
@@ -81,6 +82,13 @@
 	1. `#rosbag record -O test4 camera/aligned_depth_to_color/image_raw /camera/color/image_raw /camera/color/camera_info /tf_static /rtabmap/odom /tf`  
 	2. `roslaunch rtabmap_ros rtabmap.launch rtabmap_args:="--delete_db_on_start" depth_topic:=/camera/aligned_depth_to_color/image_raw rgb_topic:=/camera/color/image_raw camera_info_topic:=/camera/color/camera_info`  
 	3. `roslaunch realsense2_camera rs_camera.launch align_depth:=true enable_gyro:=true enable_accel:=true unite_imu_method:=linear_interpolation`  
+
+20. Evaluation on custom:  
+	1. `python getGTCorr.py '/home/cair/backup/d2-net/dataVO/data11/poses.txt' '/home/cair/backup/d2-net/dataVO/data11/rgb' '/home/cair/backup/d2-net/dataVO/data11/depth'`  
+	2. `python getTopRealSense.py ../dataVO/data11/rgb/rgb001000.jpg ../dataVO/data11/depth/depth001000.png`  
+	3. `python extractMatchTop.py dataVO/data11/rgb/rgb000100.jpg dataVO/data11/rgb/rgb001000.jpg quantitative/top100.npy quantitative/top1000.npy`  
+	4. `python icpCorr.py '/home/cair/backup/d2-net/dataVO/data11/rgb/rgb000100.jpg' '/home/cair/backup/d2-net/dataVO/data11/depth/depth000100.png' '/home/cair/backup/d2-net/dataVO/data11/rgb/rgb001000.jpg' '/home/cair/backup/d2-net/dataVO/data11/depth/depth001000.png' src_pts.txt trg_pts.txt`  
+
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 

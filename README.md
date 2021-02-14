@@ -88,7 +88,8 @@
 	2. `python getTopRealSense.py ../dataVO/data11/rgb/rgb001000.jpg ../dataVO/data11/depth/depth001000.png`  
 	3. `python extractMatchTop.py dataVO/data11/rgb/rgb000100.jpg dataVO/data11/rgb/rgb001000.jpg quantitative/top100.npy quantitative/top1000.npy`  
 	4. `python icpCorr.py '/home/cair/backup/d2-net/dataVO/data11/rgb/rgb000100.jpg' '/home/cair/backup/d2-net/dataVO/data11/depth/depth000100.png' '/home/cair/backup/d2-net/dataVO/data11/rgb/rgb001000.jpg' '/home/cair/backup/d2-net/dataVO/data11/depth/depth001000.png' src_pts.txt trg_pts.txt`  
-	5. Input: `rgb1, depth1, rgb2, depth2, H1, H2`. Ouput: `pos`
+	5. Input: `rgb1, depth1, rgb2, depth2, H1, H2`. Ouput: `predicted [R T]`:  
+		1. `python extractMatchIcp.py dataVO/data1/rgb/rgb000100.jpg dataVO/data1/depth/depth000100.png dataVO/data1/rgb/rgb001000.jpg dataVO/data1/depth/depth001000.png quantitative/top100.npy quantitative/top1000.npy`  
 
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)

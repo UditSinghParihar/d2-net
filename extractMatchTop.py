@@ -19,96 +19,25 @@ from lib.pyramid import process_multiscale
 import cv2
 import matplotlib.pyplot as plt
 import os
-from sys import exit
+from sys import exit, argv
 from PIL import Image
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform, AffineTransform
 
 
-parser = argparse.ArgumentParser(description='Feature extraction script')
-parser.add_argument('imgs', type=str, nargs=4)
-parser.add_argument(
-	'--preprocessing', type=str, default='caffe',
-	help='image preprocessing (caffe or torch)'
-)
-# parser.add_argument(
-# 	'--model_file', type=str, default='models/d2_tf.pth',
-# 	help='path to the full model'
-# )
-
-#WEIGHTS = 'models/d2_tf.pth'
-WEIGHTS = 'models/d2_kinal.pth'
-# WEIGHTS = '/home/dhagash/d2-net/d2-net_udit/checkpoints/checkpoint_PT_highRot_epoch/d2.15.pth'
-# WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
-# WEIGHTS = 'results/train_corr15_gazebo/checkpoints/d2.10.pth'
-# WEIGHTS = 'results/train_corr16_gz_15ep_curriculum/checkpoints/d2.15.pth'
-# WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_allRoad/d2.10.pth'
-# WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_crop/d2.10.pth'
-# WEIGHTS = '/home/udit/udit/d2-net/results/train_corr18_stability_term/checkpoints/d2.09.pth'
-# WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
-
-parser.add_argument(
-	'--model_file', type=str, default=WEIGHTS,
-	help='path to the full model'
-)
-parser.add_argument(
-	'--max_edge', type=int, default=1600,
-	help='maximum image size at network input'
-)
-parser.add_argument(
-	'--max_sum_edges', type=int, default=2800,
-	help='maximum sum of image sizes at network input'
-)
-
-parser.add_argument(
-	'--output_extension', type=str, default='.d2-net',
-	help='extension for the output'
-)
-parser.add_argument(
-	'--output_type', type=str, default='npz',
-	help='output file type (npz or mat)'
-)
-parser.add_argument(
-	'--multiscale', dest='multiscale', action='store_true',
-	help='extract multiscale features'
-)
-parser.set_defaults(multiscale=False)
-parser.add_argument(
-	'--no-relu', dest='use_relu', action='store_false',
-	help='remove ReLU after the dense feature extraction module'
-)
-parser.set_defaults(use_relu=True)
-
-
-def extract(image, args, model, device):
-# def extract(file, args, model, device):
-# 	image = imageio.imread(file)
-	if len(image.shape) == 2:
-		image = image[:, :, np.newaxis]
-		image = np.repeat(image, 3, -1)
-
+def extract(image, model, device, multiscale=False, preprocessing='caffe'):
 	resized_image = image
-	if max(resized_image.shape) > args.max_edge:
-		resized_image = scipy.misc.imresize(
-			resized_image,
-			args.max_edge / max(resized_image.shape)
-		).astype('float')
-	if sum(resized_image.shape[: 2]) > args.max_sum_edges:
-		resized_image = scipy.misc.imresize(
-			resized_image,
-			args.max_sum_edges / sum(resized_image.shape[: 2])
-		).astype('float')
 
 	fact_i = image.shape[0] / resized_image.shape[0]
 	fact_j = image.shape[1] / resized_image.shape[1]
 
 	input_image = preprocess_image(
 		resized_image,
-		preprocessing=args.preprocessing
+		preprocessing=preprocessing
 	)
 	with torch.no_grad():
-		if args.multiscale:
+		if multiscale:
 			keypoints, scores, descriptors = process_multiscale(
 				torch.tensor(
 					input_image[np.newaxis, :, :, :].astype(np.float32),
@@ -136,58 +65,6 @@ def extract(image, args, model, device):
 	feat['descriptors'] = descriptors
 
 	return feat
-
-
-def	scipyD2netMatching(image1, image2, feat1, feat2):
-	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
-	print('Number of raw matches: %d.' % matches.shape[0])
-
-	keypoints_left = feat1['keypoints'][matches[:, 0], : 2]
-	keypoints_right = feat2['keypoints'][matches[:, 1], : 2]
-	np.random.seed(0)
-	model, inliers = ransac(
-		(keypoints_left, keypoints_right),
-		AffineTransform, min_samples=4,
-		residual_threshold=8, max_trials=10000
-	)
-	n_inliers = np.sum(inliers)
-	print('Number of inliers: %d.' % n_inliers)
-
-	inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_left[inliers]]
-	inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_right[inliers]]
-	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
-	image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
-
-	plt.figure(figsize=(20, 20))
-	plt.imshow(image3)
-	plt.axis('off')
-	plt.show()
-
-
-def	denseScipyD2netMatching(image1, image2, feat1, feat2):
-	# image1 = cv2.imread(file1)
-	# image2 = cv2.imread(file2)
-	image1 = np.array(cv2.cvtColor(np.array(image1), cv2.COLOR_BGR2RGB))
-	image2 = np.array(cv2.cvtColor(np.array(image2), cv2.COLOR_BGR2RGB))
-
-	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
-	keypoints_left = feat1['keypoints'][matches[:, 0], : 2].T
-	keypoints_right = feat2['keypoints'][matches[:, 1], : 2].T
-
-	# print(keypoints_left.shape, keypoints_right.shape)
-
-	for i in range(keypoints_left.shape[1]):
-		image1 = cv2.circle(image1, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), 2, (0, 0, 255), 4)
-	for i in range(keypoints_right.shape[1]):
-		image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
-
-	im4 = cv2.hconcat([image1, image2])	
-
-	for i in range(keypoints_left.shape[1]):
-		im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
-
-	cv2.imshow("Image_lines", im4)
-	cv2.waitKey(0)
 
 
 def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
@@ -233,49 +110,6 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		plt.show()
 
 		return inlier_keypoints_left, inlier_keypoints_right, placeholder_matches
-
-	elif(matcher == "FLANN"):
-
-		FLANN_INDEX_KDTREE = 0
-		index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-		search_params = dict(checks = 50)
-
-		t0 = time.time()
-		flann = cv2.FlannBasedMatcher(index_params, search_params)
-		matches = flann.knnMatch(feat1['descriptors'], feat2['descriptors'],k=2)
-		t1 = time.time()
-		print("Time to extract matches: ", t1-t0)
-
-		print("Number of raw matches:", len(matches))
-
-		t0 = time.time()
-		good = []
-		for m, n in matches:
-			if m.distance < 0.9*n.distance:
-				good.append(m)
-		matches = good
-		t1 = time.time()
-		print("Time for outlier rejection: ", t1-t0)
-		print("Number of inliers: ", len(matches))
-
-		match1 = [m.queryIdx for m in matches]
-		match2 = [m.trainIdx for m in matches]
-
-		keypoints_left = feat1['keypoints'][match1, : 2].T
-		keypoints_right = feat2['keypoints'][match2, : 2].T
-
-		for i in range(keypoints_left.shape[1]):
-			image1 = cv2.circle(image1, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), 2, (0, 0, 255), 4)
-		for i in range(keypoints_right.shape[1]):
-			image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
-
-		im4 = cv2.hconcat([image1, image2])	
-
-		for i in range(keypoints_left.shape[1]):
-			im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
-
-		cv2.imshow("Image_lines", im4)
-		cv2.waitKey(0)
 
 
 def draw(kp1, kp2, good, frontImg, rearImg):
@@ -346,23 +180,11 @@ def orgKeypoints(keypoints1, keypoints2, matches, H1, H2):
 	src_pts = np.float32([ keypoints1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
 	dst_pts = np.float32([ keypoints2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
-	# pts_floor = np.array([[180, 299], [460, 290], [585, 443], [66, 462]])
-	# pts_correct = np.array([[0, 0], [399, 0], [399, 399], [0, 399]])
-	# homographyMat, status = cv2.findHomography(pts_floor, pts_correct)
-
-	# startPts = np.array([[0, 0], [400, 0], [400, 400], [0, 400]])
-	# endPts = np.array([[400, 400], [0, 400], [0, 0], [400, 0]])
-	# homoFl, status = cv2.findHomography(startPts, endPts)
-
 	src_pts = src_pts.squeeze(); dst_pts = dst_pts.squeeze()
 	ones = np.ones((src_pts.shape[0], 1))
 
 	src_pts = np.hstack((src_pts, ones))
 	dst_pts = np.hstack((dst_pts, ones))
-
-	# orgSrc = np.dot(np.linalg.inv(homographyMat), src_pts.T)
-	# orgDst = np.dot(np.dot(np.linalg.inv(homographyMat), np.linalg.inv(homoFl)), dst_pts.T)
-	# orgDst = np.dot(np.linalg.inv(homographyMat), dst_pts.T)
 
 	orgSrc = np.linalg.inv(H1) @ src_pts.T
 	orgDst = np.linalg.inv(H2) @ dst_pts.T
@@ -381,9 +203,9 @@ def drawOrg(image1, image2, orgSrc, orgDst):
 	img2 = cv2.cvtColor(image2, cv2.COLOR_BGR2RGB)
 
 	for i in range(orgSrc.shape[1]):
-		im1 = cv2.circle(img1, (int(orgSrc[0, i]), int(orgSrc[1, i])), 5, (0, 0, 255), 1)
+		im1 = cv2.circle(img1, (int(orgSrc[0, i]), int(orgSrc[1, i])), 3, (0, 0, 255), 1)
 	for i in range(orgDst.shape[1]):
-		im2 = cv2.circle(img2, (int(orgDst[0, i]), int(orgDst[1, i])), 5, (0, 0, 255), 1)
+		im2 = cv2.circle(img2, (int(orgDst[0, i]), int(orgDst[1, i])), 3, (0, 0, 255), 1)
 
 	# im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)    
 	# im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)    
@@ -396,51 +218,49 @@ def drawOrg(image1, image2, orgSrc, orgDst):
 	cv2.waitKey(0)
 
 
-if __name__ == '__main__':
+def getPerspKeypoints(rgbFile1, rgbFile2, HFile1, HFile2, model_file='models/d2_kinal_ipr.pth'):
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda:0" if use_cuda else "cpu")
-	args = parser.parse_args()
 
 	model = D2Net(
-		model_file=args.model_file,
-		use_relu=args.use_relu,
+		model_file=model_file,
+		use_relu=True,
 		use_cuda=use_cuda
 	)
 
-	image1 = np.array(Image.open(args.imgs[0]))
-	image2 = np.array(Image.open(args.imgs[1]))
-	H1 = np.load(args.imgs[2])
-	H2 = np.load(args.imgs[3])
+	image1 = np.array(Image.open(rgbFile1))
+	image2 = np.array(Image.open(rgbFile2))
+	H1 = np.load(HFile1)
+	H2 = np.load(HFile2)
 
 	imgTop1 = getTopImg(image1, H1)
 	imgTop2 = getTopImg(image2, H2)
 
-	# image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
-	# image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
-
-	# image1 = image1[:, :, np.newaxis]
-	# image1 = np.repeat(image1, 3, -1)
-
-	# image2 = image2[:, :, np.newaxis]
-	# image2 = np.repeat(image2, 3, -1)
-
-	#cv2.imshow("Image", image1)
-	#cv2.waitKey(0)
-	#exit(1)
-
-	feat1 = extract(imgTop1, args, model, device)
-	feat2 = extract(imgTop2, args, model, device)
+	feat1 = extract(imgTop1, model, device)
+	feat2 = extract(imgTop2, model, device)
 	print("Features extracted.")
 
-	# scipyD2netMatching(image1, image2, feat1, feat2)
-	# denseScipyD2netMatching(image1, image2, feat1, feat2)
+
 	keypoints1, keypoints2, matches = cv2D2netMatching(imgTop1, imgTop2, feat1, feat2, matcher="BF")
 
 	orgSrc, orgDst = orgKeypoints(keypoints1, keypoints2, matches, H1, H2)
-
-	np.savetxt('dataGenerate/src_pts.txt', orgSrc, delimiter=' ')
-	np.savetxt('dataGenerate/trg_pts.txt', orgDst, delimiter=' ')
-
 	drawOrg(image1, image2, orgSrc, orgDst)
+
+	return orgSrc, orgDst
+
+
+if __name__ == '__main__':
+	WEIGHTS = 'models/d2_kinal_ipr.pth'
+
+	srcR = argv[1] 
+	trgR = argv[2]
+	srcH = argv[3] 
+	trgH = argv[4]
+
+	orgSrc, orgDst = getPerspKeypoints(srcR, trgR, srcH, trgH, WEIGHTS)
+	print(orgSrc); print(type(orgSrc))
+
+	# np.savetxt('quantitative/src_pts.txt', orgSrc, delimiter=' ')
+	# np.savetxt('quantitative/trg_pts.txt', orgDst, delimiter=' ')
 
 	# siftMatching(image1, image2)

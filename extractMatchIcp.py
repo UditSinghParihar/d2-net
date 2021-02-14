@@ -6,6 +6,7 @@ from PIL import Image
 import math
 from squaternion import quat2euler, Quaternion
 import pyquaternion
+from extractMatchTop import getPerspKeypoints
 
 
 def draw_registration_result(source, target, transformation):
@@ -99,12 +100,9 @@ def getPointCloud2(rgbFile, depthFile, pts):
 	return pcd, corIdx, corPts
 
 
-def readCorr(file):
-	f = open(file, 'r')
-	A = f.readlines()
-	f.close()
+def convertPts(A):
+	X = A[0]; Y = A[1] 
 
-	X = A[0].split(' '); Y = A[1].split(' ') 
 	x = [];	y = []
 
 	for i in range(len(X)):
@@ -160,13 +158,6 @@ def rot2euler(R):
 
 
 if __name__ == "__main__":
-	# threshold = 0.02
-
-	# focalLength = 617.19
-	# centerX = 314.647
-	# centerY = 246.577
-	# scalingFactor = 1000.0
-
 	# Realsense D455
 	focalX = 382.1996765136719
 	focalY = 381.8395690917969
@@ -179,12 +170,13 @@ if __name__ == "__main__":
 	srcD = argv[2]
 	trgR = argv[3]
 	trgD = argv[4]
-	srcPts = argv[5]
-	trgPts = argv[6]
+	srcH = argv[5]
+	trgH = argv[6]
 
-	srcPts = readCorr(srcPts)
-	trgPts = readCorr(trgPts)
-	print(srcPts); print(type(srcPts)); exit(1)
+	srcPts, trgPts = getPerspKeypoints(srcR, trgR, srcH, trgH)
+	
+	srcPts = convertPts(srcPts)
+	trgPts = convertPts(trgPts)
 
 	srcCld, srcIdx, srcCor = getPointCloud2(srcR, srcD, srcPts)
 	trgCld, trgIdx, trgCor = getPointCloud2(trgR, trgD, trgPts)

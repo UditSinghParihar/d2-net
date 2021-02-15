@@ -84,6 +84,7 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 
 		keypoints_left = feat1['keypoints'][match1, : 2]
 		keypoints_right = feat2['keypoints'][match2, : 2]
+		print(keypoints_left.shape)
 
 		np.random.seed(0)
 
@@ -112,43 +113,16 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		return inlier_keypoints_left, inlier_keypoints_right, placeholder_matches
 
 
-def draw(kp1, kp2, good, frontImg, rearImg):
-	MIN_MATCH_COUNT = 1
-
-	if len(good) > MIN_MATCH_COUNT:
-		src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-		dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
-		M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-		matchesMask = mask.ravel().tolist()
-		draw_params = dict(matchColor = (0,255,0),
-						   singlePointColor = None,
-						   matchesMask = matchesMask,
-						   flags = 2)
-		img3 = cv2.drawMatches(frontImg,kp1,rearImg,kp2,good,None,**draw_params)
-		cv2.imshow('Matches', img3)
-		cv2.waitKey(0)
-
-	else:
-		print( "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT))
-		matchesMask = None
-		draw_params = dict(matchColor = (0,255,0),
-						   singlePointColor = None,
-						   matchesMask = matchesMask,
-						   flags = 2)
-		img3 = cv2.drawMatches(frontImg,kp1,rearImg,kp2,good,None,**draw_params)
-		cv2.imshow('Matches', img3)
-		cv2.waitKey(0)
-
-
 def siftMatching(frontImg, rearImg):
 	frontImg = np.array(cv2.cvtColor(np.array(frontImg), cv2.COLOR_BGR2RGB))
 	rearImg = np.array(cv2.cvtColor(np.array(rearImg), cv2.COLOR_BGR2RGB))
 
-	surf = cv2.xfeatures2d.SURF_create(100)
-	# surf = cv2.xfeatures2d.SIFT_create()
+	# surf = cv2.xfeatures2d.SURF_create(100)
+	surf = cv2.xfeatures2d.SIFT_create()
 
 	kp1, des1 = surf.detectAndCompute(frontImg, None)
 	kp2, des2 = surf.detectAndCompute(rearImg, None)
+
 	FLANN_INDEX_KDTREE = 0
 	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
 	search_params = dict(checks = 50)
@@ -159,11 +133,26 @@ def siftMatching(frontImg, rearImg):
 		if m.distance < 0.7*n.distance:
 			good.append(m)
 
-	draw(kp1, kp2, good, frontImg, rearImg)
+	src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1, 2)
+	dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1, 2)
 
-	n_inliers = len(good)
+	model, inliers = ransac(
+			(src_pts, dst_pts),
+			AffineTransform, min_samples=4,
+			residual_threshold=8, max_trials=10000
+		)
 
-	return n_inliers, matches
+	n_inliers = np.sum(inliers)
+
+	inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in src_pts[inliers]]
+	inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in dst_pts[inliers]]
+	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
+	image3 = cv2.drawMatches(frontImg, inlier_keypoints_left, rearImg, inlier_keypoints_right, placeholder_matches, None)
+
+	cv2.imshow('Matches', image3)
+	cv2.waitKey(0)
+
+	return inlier_keypoints_left, inlier_keypoints_right, placeholder_matches
 
 
 def getTopImg(image, H, imgSize=400):
@@ -240,10 +229,11 @@ def getPerspKeypoints(rgbFile1, rgbFile2, HFile1, HFile2, model_file='models/d2_
 	feat2 = extract(imgTop2, model, device)
 	print("Features extracted.")
 
-
 	keypoints1, keypoints2, matches = cv2D2netMatching(imgTop1, imgTop2, feat1, feat2, matcher="BF")
+	# keypoints1, keypoints2, matches =  siftMatching(imgTop1, imgTop2)
 
 	orgSrc, orgDst = orgKeypoints(keypoints1, keypoints2, matches, H1, H2)
+	
 	drawOrg(image1, image2, orgSrc, orgDst)
 
 	return orgSrc, orgDst

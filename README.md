@@ -91,6 +91,8 @@
 	5. Input: `rgb1, depth1, rgb2, depth2, H1, H2`. Ouput: `predicted [R T]`:  
 		1. `python extractMatchIcp.py dataVO/data1/rgb/rgb000100.jpg dataVO/data1/depth/depth000100.png dataVO/data1/rgb/rgb001000.jpg dataVO/data1/depth/depth001000.png quantitative/top100.npy quantitative/top1000.npy`  
 
+21. Generating RT image pairs:  
+	1. `python getRTImages.py /scratch/udit/realsense/dataVO/data4/rgb/`
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 

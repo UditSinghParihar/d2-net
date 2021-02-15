@@ -4,8 +4,6 @@ import open3d as o3d
 from sys import argv
 from PIL import Image
 import math
-from squaternion import quat2euler, Quaternion
-import pyquaternion
 from extractMatchTop import getPerspKeypoints
 
 
@@ -41,14 +39,6 @@ def readDepth(depthFile):
 
 
 def getPointCloud2(rgbFile, depthFile, pts):
-	# thresh = 5.6
-
-	# depth = Image.open(depthFile)
-	# if depth.mode != "I":
-	# 	raise Exception("Depth image is not in intensity format")
-
-	# rgb = Image.open(rgbFile)
-
 	thresh = 15.0
 
 	depth = readDepth(depthFile)
@@ -63,21 +53,12 @@ def getPointCloud2(rgbFile, depthFile, pts):
 
 	for v in range(depth.shape[0]):
 		for u in range(depth.shape[1]):
-			# Z = depth.getpixel((u,v)) / scalingFactor
-			# if Z==0: continue
-			# if (Z > thresh): continue
-
 			Z = depth[v, u] / scalingFactor
 			if Z==0: continue
 			if (Z > thresh): continue
 
 			X = (u - centerX) * Z / focalX
 			Y = (v - centerY) * Z / focalY
-			
-			# Xtemp = X; Ytemp = Y; Ztemp = Z
-			# X = Ztemp; Y = -Xtemp; Z = -Ytemp
-
-			# if(Z < 0): continue
 			
 			points.append((X, Y, Z))
 			colors.append(rgb.getpixel((u, v)))
@@ -149,14 +130,6 @@ def get3dCor(src, trg):
 	return corr
 
 
-def rot2euler(R):
-	quat = pyquaternion.Quaternion(matrix=R)
-	quat2 = Quaternion(quat.elements[0], quat.elements[1], quat.elements[2], quat.elements[3])
-	euler = quat2euler(*quat2, degrees=True)
-
-	return euler
-
-
 if __name__ == "__main__":
 	# Realsense D455
 	focalX = 382.1996765136719
@@ -174,6 +147,7 @@ if __name__ == "__main__":
 	trgH = argv[6]
 
 	srcPts, trgPts = getPerspKeypoints(srcR, trgR, srcH, trgH)
+	# exit(1)
 	
 	srcPts = convertPts(srcPts)
 	trgPts = convertPts(trgPts)
@@ -194,8 +168,6 @@ if __name__ == "__main__":
 
 	p2p = o3d.registration.TransformationEstimationPointToPoint()
 	trans_init = p2p.compute_transformation(srcCld, trgCld, o3d.utility.Vector2iVector(corr))
-	# euler = rot2euler(trans_init[0:3, 0:3])
-	# print(trans_init[0, 3], trans_init[1, 3], euler[2])
 	print(trans_init)
 
 	draw_registration_result(srcCld, trgCld, trans_init)

@@ -10,16 +10,46 @@ def getCorr(imgFile1, imgFile2):
 	im1 = cv2.imread(imgFile1)
 	im2 = cv2.imread(imgFile2)
 
-	pts_floor = np.array([[190,210],[455,210],[633,475],[0,475]])
-	pts_correct = np.array([[0, 0], [600, 0], [600, 600], [0, 600]])
-	homographyMat, status = cv2.findHomography(pts_floor, pts_correct)
-	img1 = cv2.warpPerspective(im1, homographyMat, (600, 600))
-	img2 = cv2.warpPerspective(im2, homographyMat, (400, 400))
+	# Front1
+	# pts_correct = np.array([[300, 800], [600, 800], [600, 0], [300, 0]])
+	# pts_floor = np.array([[139,802], [1275,792], [799,508], [501,519]])
 
-	# cv2.imshow("Image1", img1)
-	# cv2.imshow("Image2", im1)
-	# cv2.waitKey(0)
-	# exit(1)
+	# Front2
+	# pts_correct = np.array([[100, 700], [700, 700], [700, 0], [100, 0]])
+	# pts_floor = np.array([[139,802], [1275,792], [922,578], [425,578]])
+
+	# # Front3
+	# pts_correct = np.array([[100, 770], [700, 770], [700, 170], [100, 170]])
+	# pts_floor = np.array([[139,802], [1275,792], [1007,619], [373,618]])
+
+	# # Front4
+	# pts_correct = np.array([[50, 630], [750, 630], [750, 170], [50, 170]])
+	pts_correct = np.array([[50, 770], [750, 770], [750, 310], [50, 310]])
+	pts_floor = np.array([[139,802], [1275,792], [1099,675], [337,649]])
+
+	# Rear1
+	# pts_correct = np.array([[300, 800], [750, 800], [750, 0], [300, 0]])
+	# pts_floor = np.array([[70,657], [1013,658], [668,496], [366,487]])
+
+	# # Rear2
+	# pts_correct = np.array([[200, 670], [800, 670], [800, 70], [200, 70]])
+	# pts_floor = np.array([[3,792], [1011,789], [686,547], [334,548]])
+
+	homographyMat, status = cv2.findHomography(pts_floor, pts_correct)
+	img1 = cv2.warpPerspective(im1, homographyMat, (800, 800))
+	# np.save("dataGenerate/frontHomo.npy", homographyMat)
+	
+	# pts_floor2 = np.array([[190,210],[455,210],[633,475],[0,475]])
+	# homographyMat, status = cv2.findHomography(pts_floor2, pts_correct)
+	# img2 = cv2.warpPerspective(im2, homographyMat, (800, 800))
+
+
+	cv2.namedWindow('Image2', cv2.WINDOW_NORMAL)
+
+	cv2.imshow("Image1", img1)
+	cv2.imshow("Image2", im1)
+	cv2.waitKey(0)
+	exit(1)
 
 	startPts = np.array([[0, 0], [400, 0], [400, 400], [0, 400]])
 	endPts = np.array([[400, 400], [0, 400], [0, 0], [400, 0]])

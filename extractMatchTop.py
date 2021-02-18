@@ -84,7 +84,6 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 
 		keypoints_left = feat1['keypoints'][match1, : 2]
 		keypoints_right = feat2['keypoints'][match2, : 2]
-		print(keypoints_left.shape)
 
 		np.random.seed(0)
 
@@ -110,18 +109,21 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		plt.axis('off')
 		plt.show()
 
-		return inlier_keypoints_left, inlier_keypoints_right, placeholder_matches
+		src_pts = np.float32([ inlier_keypoints_left[m.queryIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
+		dst_pts = np.float32([ inlier_keypoints_right[m.trainIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
+
+		return src_pts, dst_pts
 
 
-def siftMatching(frontImg, rearImg):
-	frontImg = np.array(cv2.cvtColor(np.array(frontImg), cv2.COLOR_BGR2RGB))
-	rearImg = np.array(cv2.cvtColor(np.array(rearImg), cv2.COLOR_BGR2RGB))
+def siftMatching(img1, img2):
+	img1 = np.array(cv2.cvtColor(np.array(img1), cv2.COLOR_BGR2RGB))
+	img2 = np.array(cv2.cvtColor(np.array(img2), cv2.COLOR_BGR2RGB))
 
 	# surf = cv2.xfeatures2d.SURF_create(100)
 	surf = cv2.xfeatures2d.SIFT_create()
 
-	kp1, des1 = surf.detectAndCompute(frontImg, None)
-	kp2, des2 = surf.detectAndCompute(rearImg, None)
+	kp1, des1 = surf.detectAndCompute(img1, None)
+	kp2, des2 = surf.detectAndCompute(img2, None)
 
 	FLANN_INDEX_KDTREE = 0
 	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
@@ -147,12 +149,15 @@ def siftMatching(frontImg, rearImg):
 	inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in src_pts[inliers]]
 	inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in dst_pts[inliers]]
 	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
-	image3 = cv2.drawMatches(frontImg, inlier_keypoints_left, rearImg, inlier_keypoints_right, placeholder_matches, None)
+	image3 = cv2.drawMatches(img1, inlier_keypoints_left, img2, inlier_keypoints_right, placeholder_matches, None)
 
 	cv2.imshow('Matches', image3)
 	cv2.waitKey(0)
 
-	return inlier_keypoints_left, inlier_keypoints_right, placeholder_matches
+	src_pts = np.float32([ inlier_keypoints_left[m.queryIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
+	dst_pts = np.float32([ inlier_keypoints_right[m.trainIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
+
+	return src_pts, dst_pts
 
 
 def getTopImg(image, H, imgSize=400):
@@ -163,13 +168,13 @@ def getTopImg(image, H, imgSize=400):
 	return warpImg
 
 
-def orgKeypoints(keypoints1, keypoints2, matches, H1, H2):
-	good = matches
+def orgKeypoints(src_pts, dst_pts, H1, H2):
+	# good = matches
 
-	src_pts = np.float32([ keypoints1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-	dst_pts = np.float32([ keypoints2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+	# src_pts = np.float32([ keypoints1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+	# dst_pts = np.float32([ keypoints2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
-	src_pts = src_pts.squeeze(); dst_pts = dst_pts.squeeze()
+	# src_pts = src_pts.squeeze(); dst_pts = dst_pts.squeeze()
 	ones = np.ones((src_pts.shape[0], 1))
 
 	src_pts = np.hstack((src_pts, ones))
@@ -229,10 +234,10 @@ def getPerspKeypoints(rgbFile1, rgbFile2, HFile1, HFile2, model_file='models/d2_
 	feat2 = extract(imgTop2, model, device)
 	print("Features extracted.")
 
-	keypoints1, keypoints2, matches = cv2D2netMatching(imgTop1, imgTop2, feat1, feat2, matcher="BF")
-	# keypoints1, keypoints2, matches =  siftMatching(imgTop1, imgTop2)
+	src_pts, dst_pts = cv2D2netMatching(imgTop1, imgTop2, feat1, feat2, matcher="BF")
+	# src_pts, dst_pts =  siftMatching(imgTop1, imgTop2)
 
-	orgSrc, orgDst = orgKeypoints(keypoints1, keypoints2, matches, H1, H2)
+	orgSrc, orgDst = orgKeypoints(src_pts, dst_pts, H1, H2)
 	
 	drawOrg(image1, image2, orgSrc, orgDst)
 

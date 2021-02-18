@@ -172,8 +172,8 @@ if __name__ == '__main__':
 	depthImgs = natural_sort(os.listdir(depthDir))
 	poses = readPoses(gtPoses)
 
-	rgbImgs = [os.path.join(rgbDir, img) for img in rgbImgs]
-	depthImgs = [os.path.join(depthDir, img) for img in depthImgs]
+	rgbImgs = [os.path.join(rgbDir, img) for img in rgbImgs if ".jpg" in img]
+	depthImgs = [os.path.join(depthDir, img) for img in depthImgs if ".png" in img]
 
 	srcIdx = 100
 	trgIdx = 1000
@@ -190,11 +190,11 @@ if __name__ == '__main__':
 	Ttrg_src = getRelativeT(poses, srcIdx, trgIdx)
 
 	srcPcd, srcPxs = getPointCloud(rgbImgs[srcIdx], depthImgs[srcIdx])
-
 	trgPcd, trgPxs = getPointCloud(rgbImgs[trgIdx], depthImgs[trgIdx])
-	display(srcPcd)
-	display(trgPcd)
-	draw_registration_result(source=srcPcd, target=trgPcd, transformation=Ttrg_src)
+
+        # display(srcPcd)
+	# display(trgPcd)
+	# draw_registration_result(source=srcPcd, target=trgPcd, transformation=Ttrg_src)
 
 	print(Ttrg_src)
 

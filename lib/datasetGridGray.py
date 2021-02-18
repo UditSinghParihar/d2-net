@@ -177,10 +177,10 @@ class PhotoTourism(Dataset):
 		print("Building Dataset.")
 
 		imgFiles = self.getImageFiles()
-		imgFiles = imgFiles[0:len(imgFiles):5]
+		imgFiles = imgFiles[0:len(imgFiles):1]
 
 		for img in tqdm(imgFiles, total=len(imgFiles)):
-			img1 = Image.open(img).convert('L').resize((500, 500))
+			img1 = Image.open(img).convert('L').resize((420, 420))
 
 			# cv2.imshow("Image full", cv2.cvtColor(np.array(img1.convert('RGB')), cv2.COLOR_BGR2RGB))
 			# cv2.waitKey(0)

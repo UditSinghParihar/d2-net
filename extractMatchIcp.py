@@ -160,8 +160,8 @@ if __name__ == "__main__":
 	axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0, 0, 0])
 	srcSph.append(srcCld); srcSph.append(axis)
 	trgSph.append(trgCld); trgSph.append(axis)
-	o3d.visualization.draw_geometries(srcSph)
-	o3d.visualization.draw_geometries(trgSph)
+	# o3d.visualization.draw_geometries(srcSph)
+	# o3d.visualization.draw_geometries(trgSph)
 	# exit(1)
 
 	corr = get3dCor(srcIdx, trgIdx)
@@ -170,4 +170,4 @@ if __name__ == "__main__":
 	trans_init = p2p.compute_transformation(srcCld, trgCld, o3d.utility.Vector2iVector(corr))
 	print(trans_init)
 
-	draw_registration_result(srcCld, trgCld, trans_init)
+	# draw_registration_result(srcCld, trgCld, trans_init)

@@ -22,7 +22,7 @@ def getPairs(imgs):
 
 
 def writeCSV(qImgs, dImgs):
-	with open('rtImages.csv', 'w', newline='') as file:
+	with open('rtImagesDepth.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 		
 		title = []
@@ -45,7 +45,7 @@ def writeCSV(qImgs, dImgs):
 
 if __name__ == '__main__':
 	rgbDir = argv[1]
-	rgbImgs = natural_sort([file for file in os.listdir(rgbDir) if '.jpg' in file])
+	rgbImgs = natural_sort([file for file in os.listdir(rgbDir)])
 	rgbImgs = [os.path.join(rgbDir, img) for img in rgbImgs]
 
 	queryImgs, databaseImgs = getPairs(rgbImgs)

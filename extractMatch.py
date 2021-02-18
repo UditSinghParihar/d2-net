@@ -303,15 +303,16 @@ def draw(kp1, kp2, good, frontImg, rearImg):
 		cv2.waitKey(0)
 
 
-def siftMatching(frontImg, rearImg):
-	frontImg = np.array(cv2.cvtColor(np.array(frontImg), cv2.COLOR_BGR2RGB))
-	rearImg = np.array(cv2.cvtColor(np.array(rearImg), cv2.COLOR_BGR2RGB))
+def siftMatching(img1, img2):
+	img1 = np.array(cv2.cvtColor(np.array(img1), cv2.COLOR_BGR2RGB))
+	img2 = np.array(cv2.cvtColor(np.array(img2), cv2.COLOR_BGR2RGB))
 
-	surf = cv2.xfeatures2d.SURF_create(100)
-	# surf = cv2.xfeatures2d.SIFT_create()
+	# surf = cv2.xfeatures2d.SURF_create(100)
+	surf = cv2.xfeatures2d.SIFT_create()
 
-	kp1, des1 = surf.detectAndCompute(frontImg, None)
-	kp2, des2 = surf.detectAndCompute(rearImg, None)
+	kp1, des1 = surf.detectAndCompute(img1, None)
+	kp2, des2 = surf.detectAndCompute(img2, None)
+
 	FLANN_INDEX_KDTREE = 0
 	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
 	search_params = dict(checks = 50)
@@ -322,11 +323,29 @@ def siftMatching(frontImg, rearImg):
 		if m.distance < 0.7*n.distance:
 			good.append(m)
 
-	draw(kp1, kp2, good, frontImg, rearImg)
+	src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1, 2)
+	dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1, 2)
 
-	n_inliers = len(good)
+	model, inliers = ransac(
+			(src_pts, dst_pts),
+			AffineTransform, min_samples=4,
+			residual_threshold=8, max_trials=10000
+		)
 
-	return n_inliers, matches
+	n_inliers = np.sum(inliers)
+
+	inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in src_pts[inliers]]
+	inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in dst_pts[inliers]]
+	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
+	image3 = cv2.drawMatches(img1, inlier_keypoints_left, img2, inlier_keypoints_right, placeholder_matches, None)
+
+	cv2.imshow('Matches', image3)
+	cv2.waitKey(0)
+
+	src_pts = np.float32([ inlier_keypoints_left[m.queryIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
+	dst_pts = np.float32([ inlier_keypoints_right[m.trainIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
+
+	return src_pts, dst_pts
 
 
 if __name__ == '__main__':
@@ -340,17 +359,17 @@ if __name__ == '__main__':
 		use_cuda=use_cuda
 	)
 
-	image1 = np.array(Image.open(args.imgs[0]))
-	image2 = np.array(Image.open(args.imgs[1]))
+	# image1 = np.array(Image.open(args.imgs[0]))
+	# image2 = np.array(Image.open(args.imgs[1]))
 
-	# image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
-	# image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
+	image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
+	image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
 
-	# image1 = image1[:, :, np.newaxis]
-	# image1 = np.repeat(image1, 3, -1)
+	image1 = image1[:, :, np.newaxis]
+	image1 = np.repeat(image1, 3, -1)
 
-	# image2 = image2[:, :, np.newaxis]
-	# image2 = np.repeat(image2, 3, -1)
+	image2 = image2[:, :, np.newaxis]
+	image2 = np.repeat(image2, 3, -1)
 
 	#cv2.imshow("Image", image1)
 	#cv2.waitKey(0)

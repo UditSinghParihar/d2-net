@@ -17,7 +17,7 @@ def getWarp(imgFile, H):
 	img1 = cv2.warpPerspective(im1, H, (800, 800))
 
 	# cv2.imshow("Image2", img1)
-	# cv2.waitKey(0)
+	# cv2.waitKey(10)
 
 	return img1
 

@@ -22,7 +22,7 @@ def getPairs(imgs):
 
 
 def writeCSV(qImgs, dImgs):
-	with open('rtImagesDepth.csv', 'w', newline='') as file:
+	with open('rtImagesRgb.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 		
 		title = []

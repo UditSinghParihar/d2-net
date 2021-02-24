@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import os
 import re
 from PIL import Image
-import cv2
 
 
 def readData(file):
@@ -82,14 +81,25 @@ def getDist(x1, y1, x2, y2):
 
 def getTimePairs(XWorld, YWorld, data):
 	pairs = []
-	# dist = 9
-	dist = 11
+	overlapStart = 7
+	overlapEnd = 14
 
-	for i in range(200, len(XWorld)-80):
+	for i in range(250, len(XWorld)-400, 3):
+		row = []
+		isStart = True
+		
+		row.append(int(data[i][0]))
 		for j in range(i, len(XWorld)):
-			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > dist):
-				pairs.append((int(data[i][0]), int(data[j][0])))
+			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > overlapStart and (isStart == True)):
+				# pairs.append((int(data[i][0]), int(data[j][0])))
+				# break
+				row.append(int(data[j][0]))
+				isStart = False
+			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > overlapEnd):
+				row.append(int(data[j][0]))
 				break
+
+		pairs.append(row)
 
 	return pairs
 
@@ -101,76 +111,64 @@ def natural_sort(l):
 
 
 def getClosest(imgs, time):
-	# print(len(imgs), time)
 	dist = [np.abs(time-img) for img in imgs]
 
-	return imgs[dist.index(min(dist))]
+	gtIdx = dist.index(min(dist))
+
+	return imgs[gtIdx]
 
 
-def getImgPairs(frontImgs, rearImgs, timePairs):
-	frontImgs = [int(img.replace('.png', '')) for img in frontImgs]
+def getProbPairs(rearImgs, timePairs):
 	rearImgs = [int(img.replace('.png', '')) for img in rearImgs]
 	
 	frontTime = [time[0] for time in timePairs]
-	rearTime = [time[1] for time in timePairs]
+	rearTimeSt = [time[1] for time in timePairs]
+	rearTimeEnd = [time[2] for time in timePairs]
 
 	imgPairs = []
 
 	for i in range(len(frontTime)):
-		frontImg = str(frontTime[i]) + ".png"
-		rearImg = str(getClosest(rearImgs, rearTime[i])) + ".png"
+		frontImg = os.path.join(frontDir, str(frontTime[i]) + ".png")
 
-		imgPairs.append((os.path.join(frontDir, frontImg), os.path.join(rearDir, rearImg)))
+		gtImgSt = getClosest(rearImgs, rearTimeSt[i])
+		gtImgEnd = getClosest(rearImgs, rearTimeEnd[i])
+
+		rearImgSt = os.path.join(rearDir, str(gtImgSt) + ".png")
+		rearImgEnd = os.path.join(rearDir, str(gtImgEnd) + ".png")
+
+		imgPairs.append((frontImg, rearImgSt, rearImgEnd))
 
 	return imgPairs
 
 
 def writePairs(pairs):
-	with open('imagePairsOxfordH.csv', 'w', newline='') as file:
+	with open('gtPairsH.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
-		writer.writerow(['front', 'rear'])
+
+		title = ['front', 'rearStart', 'rearEnd']
+
+		writer.writerow(title)
 
 		for pair in pairs:
-			writer.writerow([pair[0], pair[1]])
-
-
-def drawPairs(pairs):
-	# fig, ax = plt.subplots(1, 2)
-
-	for pair in pairs:
-		# imf = Image.open(pair[0])
-		# imr = Image.open(pair[1])
-
-		# ax[0].imshow(imf)
-		# ax[1].imshow(imr)
-		# plt.pause(0.000001)
-
-		imf = cv2.imread(pair[0])
-		imr = cv2.imread(pair[1])
-
-		cv2.imshow("ImageFront", imf)
-		cv2.imshow("ImageRear", imr)
-		cv2.waitKey(10)
+			writer.writerow(list(pair))
 
 
 if __name__ == '__main__':
 	csvFile = argv[1]
 	frontDir = argv[2]
 	rearDir = argv[3]
-
+	
 	data = readData(csvFile)
 	trans = convert2World(data)
 
 	XWorld, YWorld, ZWorld = getXYZ(trans)
-	draw(XWorld, YWorld)
+	# draw(XWorld, YWorld)
 
 	timePairs = getTimePairs(XWorld, YWorld, data)
 
-	frontImgs = natural_sort(os.listdir(frontDir))
-	rearImgs = natural_sort(os.listdir(rearDir))
+	frontImgs = natural_sort([file for file in os.listdir(frontDir) if '.png' in file])
+	rearImgs = natural_sort([file for file in os.listdir(rearDir) if '.png' in file])
 
-	imgPairs = getImgPairs(frontImgs, rearImgs, timePairs)
-
-	# drawPairs(imgPairs)	
+	imgPairs = getProbPairs(rearImgs, timePairs)
 
 	writePairs(imgPairs)

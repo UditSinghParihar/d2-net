@@ -27,6 +27,8 @@ from skimage.feature import match_descriptors
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform, AffineTransform
 
+import pydegensac
+
 
 parser = argparse.ArgumentParser(description='Feature extraction script')
 parser.add_argument('--dir1', type=str)
@@ -179,6 +181,54 @@ def drawMatches4(frontImg, rearImg):
 	return img3, n_inliers, matches
 
 
+def siftMatching(img1, img2):
+	# img1 = np.array(cv2.cvtColor(np.array(img1), cv2.COLOR_BGR2RGB))
+	# img2 = np.array(cv2.cvtColor(np.array(img2), cv2.COLOR_BGR2RGB))
+
+	surf = cv2.xfeatures2d.SURF_create(100)
+	# surf = cv2.xfeatures2d.SIFT_create()
+
+	kp1, des1 = surf.detectAndCompute(img1, None)
+	kp2, des2 = surf.detectAndCompute(img2, None)
+
+	FLANN_INDEX_KDTREE = 0
+	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+	search_params = dict(checks = 50)
+	flann = cv2.FlannBasedMatcher(index_params, search_params)
+	matches = flann.knnMatch(des1,des2,k=2)
+	good = []
+	for m, n in matches:
+		if m.distance < 0.7*n.distance:
+			good.append(m)
+
+	src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1, 2)
+	dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1, 2)
+	
+	if(src_pts.shape[0] < 5):
+		return None
+	# model, inliers = ransac(
+	# 		(src_pts, dst_pts),
+	# 		AffineTransform, min_samples=4,
+	# 		residual_threshold=8, max_trials=10000
+	# 	)
+	H, inliers = pydegensac.findHomography(src_pts, dst_pts, 8.0, 0.99, 10000)
+
+	n_inliers = np.sum(inliers)
+
+	inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in src_pts[inliers]]
+	inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in dst_pts[inliers]]
+	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
+	image3 = cv2.drawMatches(img1, inlier_keypoints_left, img2, inlier_keypoints_right, placeholder_matches, None)
+
+	# cv2.imshow('Matches', image3)
+	# cv2.waitKey(0)
+
+	src_pts = np.float32([ inlier_keypoints_left[m.queryIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
+	dst_pts = np.float32([ inlier_keypoints_right[m.trainIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
+
+	return image3
+
+
 def	drawMatches1(image1, image2, feat1, feat2):
 	matches = match_descriptors(feat1['descriptors'], feat2['descriptors'], cross_check=True)
 	print('Number of raw matches: %d.' % matches.shape[0])
@@ -224,11 +274,13 @@ def drawMatches3(image1, image2, feat1, feat2):
 	np.random.seed(0)
 
 	t0 = time.time()
-	model, inliers = ransac(
-		(keypoints_left, keypoints_right),
-		AffineTransform, min_samples=4,
-		residual_threshold=8, max_trials=10000
-	)
+	# model, inliers = ransac(
+	# 	(keypoints_left, keypoints_right),
+	# 	AffineTransform, min_samples=4,
+	# 	residual_threshold=8, max_trials=10000
+	# )
+	H, inliers = pydegensac.findHomography(keypoints_left, keypoints_right, 8.0, 0.99, 10000)
+
 	t1 = time.time()
 	print("Time for ransac: ", t1-t0)
 
@@ -249,7 +301,7 @@ def drawMatches3(image1, image2, feat1, feat2):
 
 
 if __name__ == '__main__':
-	outDir = '/scratch/udit/robotcar/overcast/ipm2/d2net_400_orig/'
+	outDir = '/scratch/udit/robotcar/overcast/ipm3/sift/'
 
 	use_cuda = torch.cuda.is_available()
 	device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -264,7 +316,7 @@ if __name__ == '__main__':
 		use_cuda=use_cuda
 	)
 
-	for i in range(len(frontImgs)):
+	for i in tqdm(range(len(frontImgs))):
 		frontFile = os.path.join(args.dir1, frontImgs[i])
 		rearFile = os.path.join(args.dir2, rearImgs[i])
 
@@ -279,15 +331,19 @@ if __name__ == '__main__':
 		# cv2.waitKey(0)
 		# exit(1)
 
-		t0 = time.time()
-		feat1 = extract(image1, args, model, device)
-		feat2 = extract(image2, args, model, device)
-		t1 = time.time()
-		print("Time for features extraction: ", t1-t0)
-		# print("Features extracted.")
+		# t0 = time.time()
+		# feat1 = extract(image1, args, model, device)
+		# feat2 = extract(image2, args, model, device)
+		# t1 = time.time()
+		# print("Time for features extraction: ", t1-t0)
+		# # print("Features extracted.")
 		
-		image3 = drawMatches3(image1, image2, feat1, feat2)
+		# image3 = drawMatches3(image1, image2, feat1, feat2)
 		# image3, _ , _ = drawMatches4(image1, image2)
+		
+		image3 = siftMatching(image1, image2)
+		if(not isinstance(image3, np.ndarray)):
+			continue
 
 		outFile = os.path.join(outDir, str(i+1)+'.png')
 		cv2.imwrite(outFile, image3)

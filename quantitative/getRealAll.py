@@ -10,6 +10,9 @@ from shapely.geometry import Point, Polygon
 import os
 import pandas as pd
 
+ix,iy = -1, -1
+x_c, y_c = [], []
+
 
 def display(pcd, T=np.identity(4)):
 	axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
@@ -27,6 +30,7 @@ def readDepth(depthFile):
 
 
 def getPointCloud(rgbFile, depthFile):
+	global x_c, y_c
 	# 100
 	# pts = [(292, 342), (514, 465), (506, 184), (247, 186)]
 	# 1000
@@ -34,6 +38,9 @@ def getPointCloud(rgbFile, depthFile):
 	# 905
 	# pts = [(44, 394), (353, 392), (541, 322), (316, 160)]
 	pts = [(x_c[0], y_c[0]), (x_c[1], y_c[1]), (x_c[2], y_c[2]), (x_c[3], y_c[3])]
+	print(pts)
+	x_c.clear()
+	y_c.clear()
 	poly = Polygon(pts)
 
 	# thresh = 5.6
@@ -208,11 +215,10 @@ def getTopImage(rgbFile, depthFile):
 
 	return warpImg, homographyMat
 
-ix,iy = -1, -1
-x_c, y_c = [], []
+
 def click_event(event, x, y, flags, params):
 	# checking for left mouse clicks
-	global ix, iy
+	global ix, iy, x_c, y_c
 
 	if event == cv2.EVENT_LBUTTONDOWN:
 		# displaying the coordinates
@@ -229,6 +235,7 @@ def click_event(event, x, y, flags, params):
                     1, (255, 0, 0), 2)
 		x_c.append(ix)
 		y_c.append(iy)
+		print("click_event: ", x_c, y_c)
 		cv2.imshow('image', img)
 
 if __name__ == '__main__':
@@ -266,8 +273,8 @@ if __name__ == '__main__':
 		H_name = os.path.basename(im)
 		H_name = os.path.splitext(H_name)[0]
 		#print(H_name)
-		cv2.imwrite('/scratch/udit/realsense/dataVO/data2/top/' + H_name + '.png', warpImg)
-		np.save('/scratch/udit/realsense/dataVO/data2/rgb/' + H_name + '.npy', homographyMat)
+		cv2.imwrite('/scratch/udit/realsense/dataVO/data5/top/' + H_name + '.png', warpImg)
+		np.save('/scratch/udit/realsense/dataVO/data5/rgb/' + H_name + '.npy', homographyMat)
 	print('-------Query_Over--------')
 	i = 1
 	for im, dep in zip(df_rgb.iteritems(), df_dep.iteritems()):
@@ -300,6 +307,6 @@ if __name__ == '__main__':
 		H_name = os.path.basename(im[1][1])
 		H_name = os.path.splitext(H_name)[0]
 		#print(H_name)
-		cv2.imwrite('/scratch/udit/realsense/dataVO/data2/top/' + H_name + '.png', warpImg)
-		np.save('/scratch/udit/realsense/dataVO/data2/rgb/' + H_name + '.npy', homographyMat)
+		cv2.imwrite('/scratch/udit/realsense/dataVO/data5/top/' + H_name + '.png', warpImg)
+		np.save('/scratch/udit/realsense/dataVO/data5/rgb/' + H_name + '.npy', homographyMat)
 		i += 1

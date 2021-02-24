@@ -83,19 +83,30 @@ def getTimePairs(XWorld, YWorld, data):
 	pairs = []
 	overlapStart = 7
 	overlapEnd = 14
+	dbStart = 2
+	dbEnd = 52
 
 	for i in range(250, len(XWorld)-400, 3):
 		row = []
-		isStart = True
-		
+		isOverStart = True
+		isOverEnd = True
+		isDbStart = True
+
 		row.append(int(data[i][0]))
 		for j in range(i, len(XWorld)):
-			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > overlapStart and (isStart == True)):
-				# pairs.append((int(data[i][0]), int(data[j][0])))
-				# break
+			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > overlapStart and (isOverStart == True)):
 				row.append(int(data[j][0]))
-				isStart = False
-			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > overlapEnd):
+				isOverStart = False
+			
+			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > overlapEnd and (isOverEnd == True)):
+				row.append(int(data[j][0]))
+				isOverEnd = False
+
+			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > dbStart and (isDbStart == True)):
+				row.append(int(data[j][0]))
+				isDbStart = False
+
+			if(getDist(XWorld[i], YWorld[i], XWorld[j], YWorld[j]) > dbEnd):
 				row.append(int(data[j][0]))
 				break
 
@@ -122,21 +133,27 @@ def getProbPairs(rearImgs, timePairs):
 	rearImgs = [int(img.replace('.png', '')) for img in rearImgs]
 	
 	frontTime = [time[0] for time in timePairs]
-	rearTimeSt = [time[1] for time in timePairs]
-	rearTimeEnd = [time[2] for time in timePairs]
+	rearGtSt = [time[2] for time in timePairs]
+	rearGtEnd = [time[3] for time in timePairs]
+	rearDbSt = [time[1] for time in timePairs]
+	rearDbEnd = [time[4] for time in timePairs]
 
 	imgPairs = []
 
 	for i in range(len(frontTime)):
 		frontImg = os.path.join(frontDir, str(frontTime[i]) + ".png")
 
-		gtImgSt = getClosest(rearImgs, rearTimeSt[i])
-		gtImgEnd = getClosest(rearImgs, rearTimeEnd[i])
+		gtImgSt = getClosest(rearImgs, rearGtSt[i])
+		gtImgEnd = getClosest(rearImgs, rearGtEnd[i])
+		dbImgSt = getClosest(rearImgs, rearDbSt[i])
+		dbImgEnd = getClosest(rearImgs, rearDbEnd[i])
 
-		rearImgSt = os.path.join(rearDir, str(gtImgSt) + ".png")
-		rearImgEnd = os.path.join(rearDir, str(gtImgEnd) + ".png")
+		gtImgSt = os.path.join(rearDir, str(gtImgSt) + ".png")
+		gtImgEnd = os.path.join(rearDir, str(gtImgEnd) + ".png")
+		dbImgSt = os.path.join(rearDir, str(dbImgSt) + ".png")
+		dbImgEnd = os.path.join(rearDir, str(dbImgEnd) + ".png")
 
-		imgPairs.append((frontImg, rearImgSt, rearImgEnd))
+		imgPairs.append((frontImg, gtImgSt, gtImgEnd, dbImgSt, dbImgEnd))
 
 	return imgPairs
 
@@ -145,7 +162,8 @@ def writePairs(pairs):
 	with open('gtPairsH.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 
-		title = ['front', 'rearStart', 'rearEnd']
+		# title = ['front', 'rearStart', 'rearEnd']
+		title = ['frontQuery', 'gtRearStart', 'gtRearEnd', 'dbRearStart', 'dbRearEnd']
 
 		writer.writerow(title)
 

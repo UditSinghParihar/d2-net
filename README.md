@@ -58,7 +58,7 @@
 	1. `python getPairsOxford.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_rgb /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_rear_rgb`    
 	2. `python gpsPrior.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/front_top' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vpr/rear_top'`  
 
-15. Viewing image pairs:  
+15. Viewing image pairs and save image pairs:  
 	1. `python viewPairs.py imagePairsOxford.csv`  
   
 16. Accessing tensorBoard on local machine while training on server:  
@@ -72,7 +72,7 @@
 	3. `python testMatcher.py '/scratch/udit/robotcar/overcast/ipm/front/25.png' '/scratch/udit/robotcar/overcast/ipm/rear/25.png'`  
 	4. `python evaluate/plotCorr.py dataGenerate/vprOutput.csv`  
 	5. `python evaluate/evalVPR.py dataGenerate/probPairs.csv dataGenerate/vprOutput.csv`  
-	6. python extractDir.py --dir1 '/scratch/udit/robotcar/overcast/ipm2/front_top' --dir2 '/scratch/udit/robotcar/overcast/ipm2/rear_top'
+	6. `python extractDir.py --dir1 '/scratch/udit/robotcar/overcast/ipm2/front_top' --dir2 '/scratch/udit/robotcar/overcast/ipm2/rear_top'`  
 
 18. IPM generation:  
 	1. `python savePairs.py '/home/udit/udit/d2-net/dataGenerate/imagePairsOxford.csv'`  
@@ -81,7 +81,8 @@
 19. ROS:  
 	1. `#rosbag record -O test4 camera/aligned_depth_to_color/image_raw /camera/color/image_raw /camera/color/camera_info /tf_static /rtabmap/odom /tf`  
 	2. `roslaunch rtabmap_ros rtabmap.launch rtabmap_args:="--delete_db_on_start" depth_topic:=/camera/aligned_depth_to_color/image_raw rgb_topic:=/camera/color/image_raw camera_info_topic:=/camera/color/camera_info`  
-	3. `roslaunch realsense2_camera rs_camera.launch align_depth:=true enable_gyro:=true enable_accel:=true unite_imu_method:=linear_interpolation`  
+	3. `roslaunch realsense2_camera rs_camera.launch align_depth:=true enable_gyro:=true enable
+	_accel:=true unite_imu_method:=linear_interpolation`  
 
 20. Evaluation on custom:  
 	1. `python getGTCorr.py '/home/cair/backup/d2-net/dataVO/data11/poses.txt' '/home/cair/backup/d2-net/dataVO/data11/rgb' '/home/cair/backup/d2-net/dataVO/data11/depth'`  
@@ -92,7 +93,19 @@
 		1. `python extractMatchIcp.py dataVO/data1/rgb/rgb000100.jpg dataVO/data1/depth/depth000100.png dataVO/data1/rgb/rgb001000.jpg dataVO/data1/depth/depth001000.png quantitative/top100.npy quantitative/top1000.npy`  
 
 21. Generating RT image pairs:  
-	1. `python getRTImages.py /scratch/udit/realsense/dataVO/data4/rgb/`
+	1. `python getRTImages.py /scratch/udit/realsense/dataVO/data4/rgb/`  
+	2. Generating plane segmentation maps:  
+		1. `python getRealAll.py /scratch/udit/realsense/dataVO/data2/rtImagesRgb.csv /scratch/udit/realsense/dataVO/data2/rtImagesDepth.csv` 
+
+22. Top View using parallel lines:  
+	1. `python testWarp.py ~/d2-net/DenseDepth/output/depth/14_front.png ~/d2-net/DenseDepth/output/depth/14_rear.png`  
+	2. `python saveTopH.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H frontHomo4.npy`    
+
+23. Generating gt and query for robotcar:  
+	1. `python gpsPriorH.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/'`  
+	2. `python vprPairsH.py dataGenerate/gtPairsH.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/'`  
+	3. `python evalVPRH.py ../dataGenerate/gtPairsH.csv ../dataGenerate/vprOutputH.csv`  
+
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 

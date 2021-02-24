@@ -37,7 +37,7 @@ def getCorr(imgFile1, imgFile2):
 
 	homographyMat, status = cv2.findHomography(pts_floor, pts_correct)
 	img1 = cv2.warpPerspective(im1, homographyMat, (800, 800))
-	# np.save("dataGenerate/frontHomo.npy", homographyMat)
+	# np.save("dataGenerate/frontHomo4.npy", homographyMat)
 	
 	# pts_floor2 = np.array([[190,210],[455,210],[633,475],[0,475]])
 	# homographyMat, status = cv2.findHomography(pts_floor2, pts_correct)

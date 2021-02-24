@@ -24,6 +24,7 @@ from PIL import Image
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform, AffineTransform
+import pydegensac
 
 
 parser = argparse.ArgumentParser(description='Feature extraction script')
@@ -210,11 +211,14 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		np.random.seed(0)
 
 		t0 = time.time()
-		model, inliers = ransac(
-			(keypoints_left, keypoints_right),
-			AffineTransform, min_samples=4,
-			residual_threshold=8, max_trials=10000
-		)
+		# model, inliers = ransac(
+		# 	(keypoints_left, keypoints_right),
+		# 	AffineTransform, min_samples=4,
+		# 	residual_threshold=8, max_trials=10000
+		# )
+
+		H, inliers = pydegensac.findHomography(keypoints_left, keypoints_right, 8.0, 0.99, 10000)
+		
 		t1 = time.time()
 		print("Time for ransac: ", t1-t0)
 

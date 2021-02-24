@@ -175,8 +175,8 @@ if __name__ == '__main__':
 	rgbImgs = [os.path.join(rgbDir, img) for img in rgbImgs if ".jpg" in img]
 	depthImgs = [os.path.join(depthDir, img) for img in depthImgs if ".png" in img]
 
-	srcIdx = 100
-	trgIdx = 1000
+	srcIdx = 0
+	trgIdx = 1399
 
 	# Realsense D455
 	focalX = 382.1996765136719

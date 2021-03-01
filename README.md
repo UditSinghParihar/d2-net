@@ -106,6 +106,11 @@
 	2. `python vprPairsH.py dataGenerate/gtPairsH.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/'`  
 	3. `python evalVPRH.py ../dataGenerate/gtPairsH.csv ../dataGenerate/vprOutputH.csv`  
 
+24. MMA custom dataset:  
+	1. Single image:  
+		1. `python getMmaH.py /scratch/udit/realsense/dataVO/data1/rgb/rgb000000.jpg /scratch/udit/realsense/dataVO/data1/depth/depth000000.png /scratch/udit/realsense/dataVO/data1/rgb/rgb001027.jpg /scratch/udit/realsense/dataVO/data1/rgb/rgb000000.npy /scratch/udit/realsense/dataVO/data1/poses.txt /scratch/udit/realsense/dataVO/data1/depth/depth001027.png`  
+		
+
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)
 

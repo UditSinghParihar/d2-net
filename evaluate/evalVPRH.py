@@ -28,13 +28,12 @@ if __name__ == '__main__':
 	vprData = readCSV(vprFile)
 
 	correctPair = 0
-
 	for vpr, gt in zip(vprData, gtData):
 		predId = int(vpr[1])
 		
 		gtStId = int(os.path.basename(gt[1]).replace('.png', ''))
 		gtEndId = int(os.path.basename(gt[2]).replace('.png', ''))
-
+		
 		if(gtStId < predId < gtEndId):
 			correctPair += 1
 

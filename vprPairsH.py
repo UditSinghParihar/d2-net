@@ -100,9 +100,15 @@ def getPairs(queryPairs, frontDict, rearDict, rearDir):
 	rearImgs = natural_sort([file for file in os.listdir(rearDir) if '.png' in file])
 	rearImgs = [file.replace('.png', '') for file in rearImgs]
 
-	for pair in tqdm(queryPairs, total=len(queryPairs)):
+	progressBar = tqdm(queryPairs, total=len(queryPairs))
+	correct = 0.0
+	total = 0.0
+	for pair in progressBar:
 		frontImg = pair[0]
 		frontFeat = frontDict[os.path.basename(frontImg).replace('.png', '')]
+
+		gtStId = int(os.path.basename(pair[1]).replace('.png', ''))
+		gtEndId = int(os.path.basename(pair[2]).replace('.png', ''))
 
 		dbStart = os.path.basename(pair[3]).replace('.png', '')
 		dbEnd = os.path.basename(pair[4]).replace('.png', '')
@@ -124,12 +130,17 @@ def getPairs(queryPairs, frontDict, rearDict, rearDir):
 				maxRear = rearImgs[idx]
 
 		matches.append([frontImg, maxRear, str(maxInliers)])
+		total += 1.0
+		
+		if(gtStId < int(maxRear) < gtEndId):
+			correct += 1.0
+		progressBar.set_postfix(retrieve=('{}/{}({:.2f})'.format(correct, total, correct*100.0/total)))
 
 	return matches
 
 
 def writeMatches(matches):
-	with open('dataGenerate/vprOutputH.csv', 'w', newline='') as file:
+	with open('dataGenerate/vprOutputH2.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 
 		title = ['FrontImage', 'RearImage', 'Correspondences']

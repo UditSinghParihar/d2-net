@@ -130,7 +130,7 @@ def readDepth(depthFile):
 	return np.asarray(depth)
 
 
-def getPointCloud(rgbFile, depthFile):
+def getPointCloud(rgbFile, depthFile, K, scalingFactor):
 	thresh = 10
 	# thresh = 15.0
 
@@ -148,8 +148,8 @@ def getPointCloud(rgbFile, depthFile):
 			if Z==0: continue
 			if (Z > thresh): continue
 
-			X = (u - centerX) * Z / focalX
-			Y = (v - centerY) * Z / focalY
+			X = (u - K[0, 2]) * Z / K[0, 0]
+			Y = (v - K[1, 2]) * Z / K[1, 1]
 			
 			# srcPxs.append((u, v))
 			points.append((X, Y, Z))
@@ -169,10 +169,10 @@ def getPointCloud(rgbFile, depthFile):
 	return pcd
 
 
-def refineTrans(srcR, srcD, trgR, trgD, T2_1):
+def refineTrans(srcR, srcD, trgR, trgD, T2_1, K, scalingFactor):
 	t0 = time.time()
-	srcPcd = getPointCloud(srcR, srcD)
-	trgPcd = getPointCloud(trgR, trgD)
+	srcPcd = getPointCloud(srcR, srcD, K, scalingFactor)
+	trgPcd = getPointCloud(trgR, trgD, K, scalingFactor)
 	t1 = time.time()
 
 	reg_p2l = o3d.registration.registration_colored_icp(
@@ -181,7 +181,7 @@ def refineTrans(srcR, srcD, trgR, trgD, T2_1):
 													relative_rmse=1e-6,
 													max_iteration=30))
 	t2 = time.time()
-	print("PointCloud generation: {:.2f} secs and ICP refinement: {:.2f} secs".format(t1-t0, t2-t1))
+	# print("PointCloud generation: {:.2f} secs and ICP refinement: {:.2f} secs".format(t1-t0, t2-t1))
 
 	return reg_p2l.transformation
 
@@ -204,18 +204,19 @@ def	displayCorr(u1, v1, u2, v2, srcR, trgR):
 
 	im4 = cv2.hconcat([img1, img2])	
 
-	for i in range(u1.shape[1]):
-		im4 = cv2.line(im4, (int(u1[0, i]), int(v1[0, i])), (int(u2[0, i]) +  img1.shape[1], int(v2[0, i])), (0, 255, 0), 1)
+	# for i in range(u1.shape[1]):
+	# 	im4 = cv2.line(im4, (int(u1[0, i]), int(v1[0, i])), (int(u2[0, i]) +  img1.shape[1], int(v2[0, i])), (0, 255, 0), 1)
 
 	cv2.imshow("Image_lines", im4)
 	cv2.waitKey(0)
 
 
-def getGtHom(u1, v1, u2, v2):
+def corr2Homo(u1, v1, u2, v2):
 	uv1 = np.hstack((u1.T, v1.T))
 	uv2 = np.hstack((u2.T, v2.T))
 
-	H, status = cv2.findHomography(uv1, uv2)
+	# H, status = cv2.findHomography(uv1, uv2)
+	H, status = cv2.findHomography(uv1, uv2, cv2.RANSAC, 5.0)
 
 	# uv1 = np.vstack((uv1.T, np.ones((1, uv1.shape[0]))))
 	# uv2 = np.vstack((uv2.T, np.ones((1, uv2.shape[0]))))
@@ -228,6 +229,22 @@ def getGtHom(u1, v1, u2, v2):
 	# print(uv2Wrap[:, 0:8])
 
 	return H
+
+
+def getGtH(srcR, trgR, srcD, trgD, srcH, poses, K, scalingFactor):
+	u1, v1 = getSrcPx(srcR, srcH)
+	Z1 = getDepth(u1, v1, srcD, scalingFactor)
+	srcIdx, trgIdx = getIds(srcR, trgR)
+	T2_1 = getRelativeT(poses, srcIdx, trgIdx)
+	T2_1 = refineTrans(srcR, srcD, trgR, trgD, T2_1, K, scalingFactor)
+
+	u2, v2 = warp(u1, v1, Z1, K, T2_1)
+
+	# displayCorr(u1, v1, u2, v2, srcR, trgR)
+
+	gtH = corr2Homo(u1, v1, u2, v2)
+
+	return gtH, T2_1
 
 
 if __name__ == "__main__":
@@ -249,17 +266,7 @@ if __name__ == "__main__":
 	gtPoses = argv[5]
 	trgD = argv[6]
 
-	u1, v1 = getSrcPx(srcR, srcH)
 	K = getK(focalX, focalY, centerX, centerY)
-	Z1 = getDepth(u1, v1, srcD, scalingFactor)
 	poses = readPoses(gtPoses)
-	srcIdx, trgIdx = getIds(srcR, trgR)
-	T2_1 = getRelativeT(poses, srcIdx, trgIdx)
-	T2_1 = refineTrans(srcR, srcD, trgR, trgD, T2_1)
 
-	u2, v2 = warp(u1, v1, Z1, K, T2_1)
-
-	displayCorr(u1, v1, u2, v2, srcR, trgR)
-
-	gtH = getGtHom(u1, v1, u2, v2)
-
+	gtH = getGtH(srcR, trgR, srcD, trgD, srcH, poses, K, scalingFactor)

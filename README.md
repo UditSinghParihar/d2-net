@@ -109,7 +109,9 @@
 24. MMA custom dataset:  
 	1. Single image:  
 		1. `python getMmaH.py /scratch/udit/realsense/dataVO/data1/rgb/rgb000000.jpg /scratch/udit/realsense/dataVO/data1/depth/depth000000.png /scratch/udit/realsense/dataVO/data1/rgb/rgb001027.jpg /scratch/udit/realsense/dataVO/data1/rgb/rgb000000.npy /scratch/udit/realsense/dataVO/data1/poses.txt /scratch/udit/realsense/dataVO/data1/depth/depth001027.png`  
-		
+	2. All images:  
+		1. `python getMmaHAll.py '/scratch/udit/realsense/dataVO/data4/poses.txt' '/scratch/udit/realsense/dataVO/data4/rtImagesRgb.csv' '/scratch/udit/realsense/dataVO/data4/rtImagesDepth.csv'`  
+
 
 
 # [D2-Net: A Trainable CNN for Joint Detection and Description of Local Features](https://github.com/mihaidusmanu/d2-net)

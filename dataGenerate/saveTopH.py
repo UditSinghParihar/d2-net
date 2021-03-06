@@ -14,6 +14,7 @@ def natural_sort(l):
 
 def getWarp(imgFile, H):
 	im1 = cv2.imread(imgFile)
+	im1 = np.array(cv2.cvtColor(np.array(im1), cv2.COLOR_BGR2RGB))
 	img1 = cv2.warpPerspective(im1, H, (800, 800))
 
 	# cv2.imshow("Image2", img1)

@@ -126,6 +126,9 @@ class PhotoTourism(Dataset):
 		dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1,1,2)
 		H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
+		if(type(H) != np.ndarray):
+			return [], []
+
 		# h1, w1 = int(cropSize/(2**scaling_steps)), int(cropSize/(2**scaling_steps))
 		h1, w1 = int(im1.shape[0]/(2**scaling_steps)), int(im1.shape[1]/(2**scaling_steps))
 		device = torch.device("cpu")
@@ -178,6 +181,7 @@ class PhotoTourism(Dataset):
 
 		imgFiles = self.getImageFiles()
 		imgFiles = imgFiles[0:len(imgFiles):1]
+		# imgFiles = imgFiles[50:len(imgFiles):1]
 
 		for img in tqdm(imgFiles, total=len(imgFiles)):
 			img1 = Image.open(img).convert('L').resize((420, 420))

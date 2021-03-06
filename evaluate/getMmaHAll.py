@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
 			filter_list_H.append(gtH)
 			filter_list_T.append(gtT)
-			print("Extracted database.")
+			# print("Extracted database.")
 
 		print("Extracted query: {}".format(i))
 

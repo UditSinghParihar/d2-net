@@ -45,6 +45,8 @@
 	3. Conda environments: `/home/udit/softwares/py37/envs/`  
 	4. Activating other conda envs: `conda activate planercnn`    
 	5. Removing conda env: `conda env remove --name ENVIRONMENT`  
+	6. Running planercnn:  
+		1. `python evaluate.py --methods=f --suffix=warping_refine --dataset=inference --customDataFolder=realsense_images`  
 
 12. Generating top view using normal and bilinear interpolation:  
 	1. `python getTopViewNormal.py data_gazebo_floor/data7/rgb/rgb000000.jpg data_gazebo_floor/data7/depth/depth000000.npy`  
@@ -104,7 +106,8 @@
 23. Generating gt and query for robotcar:  
 	1. `python gpsPriorH.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/'`  
 	2. `python vprPairsH.py dataGenerate/gtPairsH.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/'`  
-	3. `python evalVPRH.py ../dataGenerate/gtPairsH.csv ../dataGenerate/vprOutputH.csv`  
+	3. `python vprPairsHEns.py dataGenerate/gtPairsH.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/' /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H_tf/ /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H_tf/`  
+	4. `python evalVPRH.py ../dataGenerate/gtPairsH.csv ../dataGenerate/vprOutputH.csv`  
 
 24. MMA custom dataset:  
 	1. Single image:  

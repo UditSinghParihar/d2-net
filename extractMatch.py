@@ -217,7 +217,7 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		# 	residual_threshold=8, max_trials=10000
 		# )
 
-		H, inliers = pydegensac.findHomography(keypoints_left, keypoints_right, 8.0, 0.99, 10000)
+		H, inliers = pydegensac.findHomography(keypoints_left, keypoints_right, 10.0, 0.99, 10000)
 		
 		t1 = time.time()
 		print("Time for ransac: ", t1-t0)
@@ -228,7 +228,12 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_left[inliers]]
 		inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in keypoints_right[inliers]]
 		placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
-		image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
+
+		draw_params = dict(matchColor = (0,255,0),
+		                   singlePointColor = (255,0,0),
+		                   # matchesMask = matchesMask,
+		                   flags = 0)
+		image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None, **draw_params)
 
 		plt.figure(figsize=(20, 20))
 		plt.imshow(image3)
@@ -363,17 +368,17 @@ if __name__ == '__main__':
 		use_cuda=use_cuda
 	)
 
-	# image1 = np.array(Image.open(args.imgs[0]))
-	# image2 = np.array(Image.open(args.imgs[1]))
+	image1 = np.array(Image.open(args.imgs[0]))
+	image2 = np.array(Image.open(args.imgs[1]))
 
-	image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
-	image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
+	# image1 = np.array(Image.open(args.imgs[0]).convert('L').resize((400, 400)))
+	# image2 = np.array(Image.open(args.imgs[1]).convert('L').resize((400, 400)))
 
-	image1 = image1[:, :, np.newaxis]
-	image1 = np.repeat(image1, 3, -1)
+	# image1 = image1[:, :, np.newaxis]
+	# image1 = np.repeat(image1, 3, -1)
 
-	image2 = image2[:, :, np.newaxis]
-	image2 = np.repeat(image2, 3, -1)
+	# image2 = image2[:, :, np.newaxis]
+	# image2 = np.repeat(image2, 3, -1)
 
 	#cv2.imshow("Image", image1)
 	#cv2.waitKey(0)

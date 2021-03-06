@@ -24,6 +24,7 @@ from PIL import Image
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform, AffineTransform
+import pydegensac
 
 
 def extract(image, model, device, multiscale=False, preprocessing='caffe'):
@@ -88,11 +89,12 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		np.random.seed(0)
 
 		t0 = time.time()
-		model, inliers = ransac(
-			(keypoints_left, keypoints_right),
-			AffineTransform, min_samples=4,
-			residual_threshold=8, max_trials=10000
-		)
+		# model, inliers = ransac(
+		# 	(keypoints_left, keypoints_right),
+		# 	AffineTransform, min_samples=4,
+		# 	residual_threshold=8, max_trials=10000
+		# )
+		H, inliers = pydegensac.findHomography(keypoints_left, keypoints_right, 8.0, 0.99, 10000)
 		t1 = time.time()
 		print("Time for ransac: ", t1-t0)
 
@@ -160,12 +162,12 @@ def siftMatching(img1, img2):
 	return src_pts, dst_pts
 
 
-def getTopImg(image, H, imgSize=400):
+def getTopImg(image, H, imgSize=800):
 	warpImg = cv2.warpPerspective(image, H, (imgSize, imgSize))
 	# cv2.imshow("Image", cv2.cvtColor(warpImg, cv2.COLOR_BGR2RGB))
 	# cv2.waitKey(0)
 
-	return warpImg
+	return cv2.resize(warpImg, (400, 400))
 
 
 def orgKeypoints(src_pts, dst_pts, H1, H2):
@@ -196,6 +198,14 @@ def drawOrg(image1, image2, orgSrc, orgDst):
 	img1 = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)
 	img2 = cv2.cvtColor(image2, cv2.COLOR_BGR2RGB)
 
+	orgSrc[0, :] *= 0.46875
+	orgSrc[1, :] *= 0.625
+	orgDst[0, :] *= 0.5859
+	orgDst[1, :] *= 0.5859 
+
+	img1 = cv2.resize(img1, (600, 600))
+	img2 = cv2.resize(img2, (600, 600))
+
 	for i in range(orgSrc.shape[1]):
 		im1 = cv2.circle(img1, (int(orgSrc[0, i]), int(orgSrc[1, i])), 3, (0, 0, 255), 1)
 	for i in range(orgDst.shape[1]):
@@ -204,11 +214,14 @@ def drawOrg(image1, image2, orgSrc, orgDst):
 	# im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2RGB)    
 	# im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2RGB)    
 
+	# print(im1.shape, im2.shape, orgSrc.shape, orgDst.shape)
 	im4 = cv2.hconcat([im1, im2])
 	for i in range(orgSrc.shape[1]):
 		im4 = cv2.line(im4, (int(orgSrc[0, i]), int(orgSrc[1, i])), (int(orgDst[0, i]) +  im1.shape[1], int(orgDst[1, i])), (0, 255, 0), 1)
 
 	cv2.imshow("Image", im4)
+	# cv2.imshow("Image", im1)
+	# cv2.imshow("Image2", im2)
 	cv2.waitKey(0)
 
 
@@ -222,13 +235,29 @@ def getPerspKeypoints(rgbFile1, rgbFile2, HFile1, HFile2, model_file='models/d2_
 		use_cuda=use_cuda
 	)
 
-	image1 = np.array(Image.open(rgbFile1))
-	image2 = np.array(Image.open(rgbFile2))
+	image1 = np.array(Image.open(rgbFile1).convert('L'))
+	image1 = image1[:, :, np.newaxis]
+	image1 = np.repeat(image1, 3, -1)
+	image2 = np.array(Image.open(rgbFile2).convert('L'))
+	image2 = image2[:, :, np.newaxis]
+	image2 = np.repeat(image2, 3, -1)
+
+	# image1 = np.array(Image.open(rgbFile1))
+	# image2 = np.array(Image.open(rgbFile2))
+
 	H1 = np.load(HFile1)
 	H2 = np.load(HFile2)
 
+	# im1 = cv2.imread(rgbFile1)
+	# im1 = np.array(cv2.cvtColor(np.array(im1), cv2.COLOR_BGR2RGB))
+	# img1 = cv2.warpPerspective(im1, H1, (800, 800))
+
+	# cv2.imshow("Image", img1)
+	# cv2.waitKey(0)
+
 	imgTop1 = getTopImg(image1, H1)
 	imgTop2 = getTopImg(image2, H2)
+	# exit(1)
 
 	feat1 = extract(imgTop1, model, device)
 	feat2 = extract(imgTop2, model, device)
@@ -237,16 +266,20 @@ def getPerspKeypoints(rgbFile1, rgbFile2, HFile1, HFile2, model_file='models/d2_
 	src_pts, dst_pts = cv2D2netMatching(imgTop1, imgTop2, feat1, feat2, matcher="BF")
 	# src_pts, dst_pts =  siftMatching(imgTop1, imgTop2)
 
-	orgSrc, orgDst = orgKeypoints(src_pts, dst_pts, H1, H2)
+	orgSrc, orgDst = orgKeypoints(src_pts*2, dst_pts*2, H1, H2)
 	
-	drawOrg(image1, image2, orgSrc, orgDst)
+	# drawOrg(image1, image2, orgSrc, orgDst)
+	drawOrg(np.array(Image.open(rgbFile1)), np.array(Image.open(rgbFile2)), orgSrc, orgDst)
 
 	return orgSrc, orgDst
 
 
 if __name__ == '__main__':
 	# WEIGHTS = 'models/d2_kinal_ipr.pth'
-	WEIGHTS = "/home/udit/kinal/full_train/d2-net/checkpoints/d2-ipr-full/10.pth"
+	# WEIGHTS = "/home/udit/kinal/full_train/d2-net/checkpoints/d2-ipr-full/10.pth"
+	
+	# WEIGHTS = "/home/udit/udit/d2-net/results/train_corr20_robotcar_H_same/checkpoints/d2.15.pth"
+	WEIGHTS = "models/d2_tf.pth"
 
 	srcR = argv[1] 
 	trgR = argv[2]

@@ -28,7 +28,10 @@ def warp(u1, v1, Z1, K, T2_1):
 	uv2_hom = K @ XYZ2
 	uv2 = uv2_hom[: -1, :] / uv2_hom[-1, :].reshape(1, -1)
 
-	return uv2[0, :].reshape(1, -1), uv2[1, :].reshape(1, -1)
+	u2 = uv2[0, :].reshape(1, -1)
+	v2 = uv2[1, :].reshape(1, -1)
+
+	return u2, v2
 
 
 def getSrcPx(imgFile, HFile, imgSize=400, draw=False):
@@ -54,7 +57,20 @@ def getSrcPx(imgFile, HFile, imgSize=400, draw=False):
 		cv2.imshow('warped', warpImg)
 		cv2.waitKey(0)
 
-	return kpOrg[0, :].reshape(1, -1).astype(int), kpOrg[1, :].reshape(1, -1).astype(int)
+	u1 = kpOrg[0, :].reshape(1, -1).astype(int)
+	v1 = kpOrg[1, :].reshape(1, -1).astype(int)
+	
+	u1Valid = []
+	v1Valid = []
+	for i in range(u1.shape[1]):
+		if((0 < u1[0, i] < img.shape[1]) and (0 < v1[0, i] < img.shape[0])):
+			u1Valid.append(u1[0, i])
+			v1Valid.append(v1[0, i])
+
+	u1Valid = np.asarray(u1Valid).reshape(1, -1)
+	v1Valid = np.asarray(v1Valid).reshape(1, -1)
+
+	return u1Valid, v1Valid
 
 
 def getK(fX, fY, cX, cY):
@@ -269,4 +285,5 @@ if __name__ == "__main__":
 	K = getK(focalX, focalY, centerX, centerY)
 	poses = readPoses(gtPoses)
 
-	gtH = getGtH(srcR, trgR, srcD, trgD, srcH, poses, K, scalingFactor)
+	gtH, T2_1 = getGtH(srcR, trgR, srcD, trgD, srcH, poses, K, scalingFactor)
+	print(gtH)

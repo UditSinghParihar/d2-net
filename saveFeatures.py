@@ -159,8 +159,8 @@ if __name__ == '__main__':
 				descriptors=feat['descriptors']
 			)
 
-		# fig, ax = plt.subplots(1, 1)
-		# ax.imshow(image)
-		# ax.set_title('Front View')
-		# plt.show()
+		#fig, ax = plt.subplots(1, 1)
+		#ax.imshow(image)
+		#ax.set_title('Front View')
+		#plt.show()
 		

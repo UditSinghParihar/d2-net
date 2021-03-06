@@ -22,6 +22,7 @@ from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform, AffineTransform
 
 import pydegensac
+import copy
 
 
 def readQuery(file):
@@ -54,7 +55,7 @@ def loadFeat(queryPairs, frontDir, rearDir):
 		for row in tqdm(queryPairs, total=len(queryPairs)):
 			frontImg = row[0]
 
-			frontFeat = frontImg.replace('png', 'd2-net')
+			frontFeat = os.path.join(frontDir, os.path.basename(frontImg.replace('png', 'd2-net')))
 			frontDict[os.path.basename(frontImg).replace('.png', '')] = np.load(frontFeat)
 
 		rearFeats = natural_sort([file for file in os.listdir(rearDir) if '.d2-net' in file])
@@ -140,7 +141,7 @@ def getPairs(queryPairs, frontDict, rearDict, rearDir):
 
 
 def writeMatches(matches):
-	with open('dataGenerate/vprOutputH2.csv', 'w', newline='') as file:
+	with open('dataGenerate/vprOutputHDiff.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 
 		title = ['FrontImage', 'RearImage', 'Correspondences']

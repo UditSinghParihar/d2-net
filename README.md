@@ -106,14 +106,21 @@
 23. Generating gt and query for robotcar:  
 	1. `python gpsPriorH.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/vo/vo.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/'`  
 	2. `python vprPairsH.py dataGenerate/gtPairsH.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/'`  
-	3. `python vprPairsHEns.py dataGenerate/gtPairsH.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/' /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H_tf/ /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H_tf/`  
-	4. `python evalVPRH.py ../dataGenerate/gtPairsH.csv ../dataGenerate/vprOutputH.csv`  
+	3. `python vprPairsSIFTH.py dataGenerate/gtPairsHSub.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/'`  
+	4. `python vprPairsHEns.py dataGenerate/gtPairsH.csv '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H/' '/scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H/' /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_top_H_tf/ /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_top_H_tf/`  
+	5. `python evalVPRH.py ../dataGenerate/gtPairsH.csv ../dataGenerate/vprOutputH.csv`  
 
 24. MMA custom dataset:  
 	1. Single image:  
 		1. `python getMmaH.py /scratch/udit/realsense/dataVO/data1/rgb/rgb000000.jpg /scratch/udit/realsense/dataVO/data1/depth/depth000000.png /scratch/udit/realsense/dataVO/data1/rgb/rgb001027.jpg /scratch/udit/realsense/dataVO/data1/rgb/rgb000000.npy /scratch/udit/realsense/dataVO/data1/poses.txt /scratch/udit/realsense/dataVO/data1/depth/depth001027.png`  
 	2. All images:  
 		1. `python getMmaHAll.py '/scratch/udit/realsense/dataVO/data4/poses.txt' '/scratch/udit/realsense/dataVO/data4/rtImagesRgb.csv' '/scratch/udit/realsense/dataVO/data4/rtImagesDepth.csv'`  
+
+25. Video on RobotCar Subsequence:  
+	1. `python extractMatchTopRobo.py /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/stereo/centre_rgb/1403774757975948.png /scratch/udit/robotcar/overcast/2014-06-26-09-24-58/mono_rear_rgb/1403774759948850.png  dataGenerate/frontHomo4.npy dataGenerate/rearHomo.npy`  
+	2. `python roboSeq.py dataGenerate/vprOutputHSub.csv dataGenerate/gtPairsHSub.csv`  
+	3. `python plotMatchesDiv.py diverseView/Data2_tfOV/ diverseView/Data2_ipr/ diverseView/Data2_tf`  
+	4. `python plotMatchesVpr.py subSeq/d2net/ subSeq/rord/ subSeq/sift/`  
 
 
 

@@ -141,7 +141,7 @@ def getPairs(queryPairs, frontDict, rearDict, rearDir):
 
 
 def writeMatches(matches):
-	with open('dataGenerate/vprOutputHDiff.csv', 'w', newline='') as file:
+	with open('dataGenerate/vprOutputHSubTf.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 
 		title = ['FrontImage', 'RearImage', 'Correspondences']

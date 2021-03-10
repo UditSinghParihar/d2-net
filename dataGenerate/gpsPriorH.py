@@ -87,6 +87,7 @@ def getTimePairs(XWorld, YWorld, data):
 	dbEnd = 52
 
 	for i in range(250, len(XWorld)-400, 3):
+	# for i in range(770, len(XWorld)-1920, 1):
 		row = []
 		isOverStart = True
 		isOverEnd = True
@@ -159,7 +160,7 @@ def getProbPairs(rearImgs, timePairs):
 
 
 def writePairs(pairs):
-	with open('gtPairsH.csv', 'w', newline='') as file:
+	with open('gtPairsHSub.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 
 		# title = ['front', 'rearStart', 'rearEnd']

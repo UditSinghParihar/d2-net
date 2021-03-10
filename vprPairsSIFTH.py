@@ -42,7 +42,7 @@ def readQuery(file):
 
 
 def writeMatches(matches):
-	with open('dataGenerate/vprOutputSIFTH.csv', 'w', newline='') as file:
+	with open('dataGenerate/vprOutputHSubSIFT.csv', 'w', newline='') as file:
 		writer = csv.writer(file)
 
 		title = ['FrontImage', 'RearImage', 'Correspondences']
@@ -144,7 +144,7 @@ def getPairs(queryPairs, rearDir):
 				maxInliers = inliers
 				maxRear = rearImgs[idx]
 
-		matches.append([frontImg, maxRear, str(maxInliers)])
+		matches.append([frontFile, maxRear, str(maxInliers)])
 		total += 1.0
 		
 		if(gtStId < int(maxRear) < gtEndId):

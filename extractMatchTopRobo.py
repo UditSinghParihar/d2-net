@@ -76,9 +76,9 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		matches = bf.match(feat1['descriptors'], feat2['descriptors'])
 		matches = sorted(matches, key=lambda x:x.distance)
 		t1 = time.time()
-		print("Time to extract matches: ", t1-t0)
+		# print("Time to extract matches: ", t1-t0)
 
-		print("Number of raw matches:", len(matches))
+		# print("Number of raw matches:", len(matches))
 
 		match1 = [m.queryIdx for m in matches]
 		match2 = [m.trainIdx for m in matches]
@@ -96,7 +96,7 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		# )
 		H, inliers = pydegensac.findHomography(keypoints_left, keypoints_right, 8.0, 0.99, 10000)
 		t1 = time.time()
-		print("Time for ransac: ", t1-t0)
+		# print("Time for ransac: ", t1-t0)
 
 		n_inliers = np.sum(inliers)
 		print('Number of inliers: %d.' % n_inliers)
@@ -106,23 +106,23 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
 		image3 = cv2.drawMatches(image1, inlier_keypoints_left, image2, inlier_keypoints_right, placeholder_matches, None)
 
-		plt.figure(figsize=(20, 20))
-		plt.imshow(image3)
-		plt.axis('off')
-		plt.show()
+		# plt.figure(figsize=(20, 20))
+		# plt.imshow(image3)
+		# plt.axis('off')
+		# plt.show()
 
 		src_pts = np.float32([ inlier_keypoints_left[m.queryIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
 		dst_pts = np.float32([ inlier_keypoints_right[m.trainIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
 
-		return src_pts, dst_pts
+		return src_pts, dst_pts, image3
 
 
 def siftMatching(img1, img2):
-	img1 = np.array(cv2.cvtColor(np.array(img1), cv2.COLOR_BGR2RGB))
-	img2 = np.array(cv2.cvtColor(np.array(img2), cv2.COLOR_BGR2RGB))
+	# img1 = np.array(cv2.cvtColor(np.array(img1), cv2.COLOR_BGR2RGB))
+	# img2 = np.array(cv2.cvtColor(np.array(img2), cv2.COLOR_BGR2RGB))
 
-	# surf = cv2.xfeatures2d.SURF_create(100)
-	surf = cv2.xfeatures2d.SIFT_create()
+	surf = cv2.xfeatures2d.SURF_create(5)
+	# surf = cv2.xfeatures2d.SIFT_create()
 
 	kp1, des1 = surf.detectAndCompute(img1, None)
 	kp2, des2 = surf.detectAndCompute(img2, None)
@@ -134,32 +134,47 @@ def siftMatching(img1, img2):
 	matches = flann.knnMatch(des1,des2,k=2)
 	good = []
 	for m, n in matches:
-		if m.distance < 0.7*n.distance:
+		if m.distance < 0.8*n.distance:
 			good.append(m)
 
 	src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1, 2)
 	dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1, 2)
 
-	model, inliers = ransac(
-			(src_pts, dst_pts),
-			AffineTransform, min_samples=4,
-			residual_threshold=8, max_trials=10000
-		)
+	if(src_pts.shape[0] < 5):
+		print("Less than 5 points after flann.", src_pts.shape)
+		img3 = cv2.hconcat([img1, img2])
+
+		# cv2.imshow('Matches', img3)
+		# cv2.waitKey(0)
+		
+		return src_pts, dst_pts, img3
+
+	# model, inliers = ransac(
+	# 		(src_pts, dst_pts),
+	# 		AffineTransform, min_samples=4,
+	# 		residual_threshold=8, max_trials=10000
+	# 	)
+	H, inliers = pydegensac.findHomography(src_pts, dst_pts, 8.0, 0.99, 10000)
 
 	n_inliers = np.sum(inliers)
+	print("inliers:", n_inliers)
+
+	if(n_inliers == 0):
+		img3 = cv2.hconcat([img1, img2])
+		return src_pts, dst_pts, img3
 
 	inlier_keypoints_left = [cv2.KeyPoint(point[0], point[1], 1) for point in src_pts[inliers]]
 	inlier_keypoints_right = [cv2.KeyPoint(point[0], point[1], 1) for point in dst_pts[inliers]]
 	placeholder_matches = [cv2.DMatch(idx, idx, 1) for idx in range(n_inliers)]
 	image3 = cv2.drawMatches(img1, inlier_keypoints_left, img2, inlier_keypoints_right, placeholder_matches, None)
 
-	cv2.imshow('Matches', image3)
-	cv2.waitKey(0)
+	# cv2.imshow('Matches', image3)
+	# cv2.waitKey(0)
 
 	src_pts = np.float32([ inlier_keypoints_left[m.queryIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
 	dst_pts = np.float32([ inlier_keypoints_right[m.trainIdx].pt for m in placeholder_matches ]).reshape(-1, 2)
 
-	return src_pts, dst_pts
+	return src_pts, dst_pts, image3
 
 
 def getTopImg(image, H, imgSize=800):
@@ -171,12 +186,6 @@ def getTopImg(image, H, imgSize=800):
 
 
 def orgKeypoints(src_pts, dst_pts, H1, H2):
-	# good = matches
-
-	# src_pts = np.float32([ keypoints1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-	# dst_pts = np.float32([ keypoints2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
-
-	# src_pts = src_pts.squeeze(); dst_pts = dst_pts.squeeze()
 	ones = np.ones((src_pts.shape[0], 1))
 
 	src_pts = np.hstack((src_pts, ones))
@@ -219,10 +228,10 @@ def drawOrg(image1, image2, orgSrc, orgDst):
 	for i in range(orgSrc.shape[1]):
 		im4 = cv2.line(im4, (int(orgSrc[0, i]), int(orgSrc[1, i])), (int(orgDst[0, i]) +  im1.shape[1], int(orgDst[1, i])), (0, 255, 0), 1)
 
-	cv2.imshow("Image", im4)
-	# cv2.imshow("Image", im1)
-	# cv2.imshow("Image2", im2)
-	cv2.waitKey(0)
+	# cv2.imshow("Image", im4)
+	# cv2.waitKey(0)
+
+	return im4
 
 
 def getPerspKeypoints(rgbFile1, rgbFile2, HFile1, HFile2, model_file='models/d2_kinal_ipr.pth'):
@@ -261,35 +270,30 @@ def getPerspKeypoints(rgbFile1, rgbFile2, HFile1, HFile2, model_file='models/d2_
 
 	feat1 = extract(imgTop1, model, device)
 	feat2 = extract(imgTop2, model, device)
-	print("Features extracted.")
+	# print("Features extracted.")
 
-	src_pts, dst_pts = cv2D2netMatching(imgTop1, imgTop2, feat1, feat2, matcher="BF")
-	# src_pts, dst_pts =  siftMatching(imgTop1, imgTop2)
+	src_pts, dst_pts, topMatchImg = cv2D2netMatching(imgTop1, imgTop2, feat1, feat2, matcher="BF")
+	# src_pts, dst_pts, topMatchImg =  siftMatching(imgTop1, imgTop2)
 
 	orgSrc, orgDst = orgKeypoints(src_pts*2, dst_pts*2, H1, H2)
 	
 	# drawOrg(image1, image2, orgSrc, orgDst)
-	drawOrg(np.array(Image.open(rgbFile1)), np.array(Image.open(rgbFile2)), orgSrc, orgDst)
+	perpMatchImg = drawOrg(np.array(Image.open(rgbFile1)), np.array(Image.open(rgbFile2)), orgSrc, orgDst)
 
-	return orgSrc, orgDst
+	return topMatchImg, perpMatchImg
 
 
 if __name__ == '__main__':
 	# WEIGHTS = 'models/d2_kinal_ipr.pth'
 	# WEIGHTS = "/home/udit/kinal/full_train/d2-net/checkpoints/d2-ipr-full/10.pth"
 	
-	# WEIGHTS = "/home/udit/udit/d2-net/results/train_corr20_robotcar_H_same/checkpoints/d2.15.pth"
-	WEIGHTS = "models/d2_tf.pth"
+	WEIGHTS = "/home/udit/udit/d2-net/results/train_corr20_robotcar_H_same/checkpoints/d2.15.pth"
+	# WEIGHTS = "models/d2_tf.pth"
+	# WEIGHTS = "checkpoints/d2.15.pth"
 
 	srcR = argv[1] 
 	trgR = argv[2]
 	srcH = argv[3] 
 	trgH = argv[4]
 
-	orgSrc, orgDst = getPerspKeypoints(srcR, trgR, srcH, trgH, WEIGHTS)
-	# print(orgSrc); print(type(orgSrc))
-
-	# np.savetxt('quantitative/src_pts.txt', orgSrc, delimiter=' ')
-	# np.savetxt('quantitative/trg_pts.txt', orgDst, delimiter=' ')
-
-	# siftMatching(image1, image2)
+	topMatchImg, perpMatchImg = getPerspKeypoints(srcR, trgR, srcH, trgH, WEIGHTS)

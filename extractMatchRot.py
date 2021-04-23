@@ -25,7 +25,7 @@ from skimage.feature import match_descriptors
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform, AffineTransform
 import time
-
+from lib.model_test_e2inv import D2NetE2Inv
 
 WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_crop/d2.10.pth'
 # WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
@@ -174,7 +174,7 @@ def	drawMatches2(image1, image2, feat1, feat2):
 	for i in range(keypoints_right.shape[1]):
 		image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
 
-	im4 = cv2.hconcat([image1, image2])	
+	im4 = cv2.hconcat([image1, image2])
 
 	for i in range(keypoints_left.shape[1]):
 		im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
@@ -260,7 +260,7 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		for i in range(keypoints_right.shape[1]):
 			image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
 
-		im4 = cv2.hconcat([image1, image2])	
+		im4 = cv2.hconcat([image1, image2])
 
 		for i in range(keypoints_left.shape[1]):
 			im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
@@ -280,11 +280,16 @@ if __name__ == '__main__':
 	# 	use_cuda=use_cuda
 	# )
 
-	model2 = D2Net(
-		model_file=args.model_file2,
+	model1 = D2Net(
+		model_file=args.model_file1,
 		use_relu=args.use_relu,
 		use_cuda=use_cuda
 	)
+
+	model2 = D2NetE2Inv()
+	state_dict = torch.load(args.model_file2, map_location='cpu')
+	model2.load_state_dict(state_dict['model'])
+	model2 = model2.to(device)
 
 	image1 = Image.open(args.imgs[0])
 	image2 = image1.rotate(np.random.randint(low=90, high=270))
@@ -292,12 +297,12 @@ if __name__ == '__main__':
 	image1 = np.array(image1)
 	image2 = np.array(image2)
 
-	# feat1Pre = extract(np.array(image1), args, model1, device)
-	# feat2Pre = extract(np.array(image2), args, model1, device)
+	feat1Pre = extract(np.array(image1), args, model1, device)
+	feat2Pre = extract(np.array(image2), args, model1, device)
 
 	feat1Trained = extract(np.array(image1), args, model2, device)
 	feat2Trained = extract(np.array(image2), args, model2, device)
-	
+
 	print("Features extracted.")
 
 	# drawMatches(image1, image2, feat1Pre, feat2Pre)
@@ -306,3 +311,4 @@ if __name__ == '__main__':
 	# drawMatches2(image1, image2, feat1, feat2)
 
 	cv2D2netMatching(image1, image2, feat1Trained, feat2Trained, matcher="BF")
+	cv2D2netMatching(image1, image2, feat1Pre, feat2Pre, matcher="BF")

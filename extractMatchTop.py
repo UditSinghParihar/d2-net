@@ -24,6 +24,7 @@ from PIL import Image
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform, AffineTransform
+import pydegensac
 
 
 def extract(image, model, device, multiscale=False, preprocessing='caffe'):
@@ -88,10 +89,8 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		np.random.seed(0)
 
 		t0 = time.time()
-		model, inliers = ransac(
-			(keypoints_left, keypoints_right),
-			AffineTransform, min_samples=4,
-			residual_threshold=8, max_trials=10000
+		model, inliers = pydegensac.findHomography(
+			keypoints_left, keypoints_right, 10.0, 0.99, 10000
 		)
 		t1 = time.time()
 		print("Time for ransac: ", t1-t0)
@@ -161,10 +160,15 @@ def siftMatching(img1, img2):
 
 
 def getTopImg(image, H, imgSize=400):
+	# print(image.shape, imgSize)
 	warpImg = cv2.warpPerspective(image, H, (imgSize, imgSize))
+	# warpImg = cv2.warpPerspective(image, H, (image.shape[1], image.shape[0]))
+	
 	# cv2.imshow("Image", cv2.cvtColor(warpImg, cv2.COLOR_BGR2RGB))
+	# cv2.imwrite("/home/udit/top.jpg", cv2.cvtColor(warpImg, cv2.COLOR_BGR2RGB))
+	# cv2.imshow("Image", image)
 	# cv2.waitKey(0)
-
+	# exit(1)
 	return warpImg
 
 
@@ -245,8 +249,8 @@ def getPerspKeypoints(rgbFile1, rgbFile2, HFile1, HFile2, model_file='models/d2_
 
 
 if __name__ == '__main__':
-	# WEIGHTS = 'models/d2_kinal_ipr.pth'
-	WEIGHTS = "/home/udit/kinal/full_train/d2-net/checkpoints/d2-ipr-full/10.pth"
+	WEIGHTS = 'models/d2_kinal_ipr.pth'
+	# WEIGHTS = "/home/udit/kinal/full_train/d2-net/checkpoints/d2-ipr-full/10.pth"
 
 	srcR = argv[1] 
 	trgR = argv[2]

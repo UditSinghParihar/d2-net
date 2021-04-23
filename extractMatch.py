@@ -25,6 +25,7 @@ from skimage.feature import match_descriptors
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform, AffineTransform
 import pydegensac
+from lib.model_test_e2inv import D2NetE2Inv
 
 
 parser = argparse.ArgumentParser(description='Feature extraction script')
@@ -38,7 +39,7 @@ parser.add_argument(
 # 	help='path to the full model'
 # )
 
-#WEIGHTS = 'models/d2_tf.pth'
+WEIGHTS = 'models/d2_tf.pth'
 # WEIGHTS = '/home/dhagash/d2-net/d2-net_udit/checkpoints/checkpoint_PT_highRot_epoch/d2.15.pth'
 # WEIGHTS = 'results/train_corr14_360/checkpoints/d2.10.pth'
 # WEIGHTS = 'results/train_corr15_gazebo/checkpoints/d2.10.pth'
@@ -46,7 +47,7 @@ parser.add_argument(
 # WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_allRoad/d2.10.pth'
 # WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_rcar_crop/d2.10.pth'
 # WEIGHTS = '/home/udit/udit/d2-net/results/train_corr18_stability_term/checkpoints/d2.09.pth'
-WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
+# WEIGHTS = '/home/udit/d2-net/checkpoints/checkpoint_road_more/d2.15.pth'
 
 parser.add_argument(
 	'--model_file', type=str, default=WEIGHTS,
@@ -181,7 +182,7 @@ def	denseScipyD2netMatching(image1, image2, feat1, feat2):
 	for i in range(keypoints_right.shape[1]):
 		image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
 
-	im4 = cv2.hconcat([image1, image2])	
+	im4 = cv2.hconcat([image1, image2])
 
 	for i in range(keypoints_left.shape[1]):
 		im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
@@ -211,14 +212,9 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		np.random.seed(0)
 
 		t0 = time.time()
-		# model, inliers = ransac(
-		# 	(keypoints_left, keypoints_right),
-		# 	AffineTransform, min_samples=4,
-		# 	residual_threshold=8, max_trials=10000
-		# )
 
 		H, inliers = pydegensac.findHomography(keypoints_left, keypoints_right, 10.0, 0.99, 10000)
-		
+
 		t1 = time.time()
 		print("Time for ransac: ", t1-t0)
 
@@ -275,7 +271,7 @@ def cv2D2netMatching(image1, image2, feat1, feat2, matcher="BF"):
 		for i in range(keypoints_right.shape[1]):
 			image2 = cv2.circle(image2, (int(keypoints_right[0, i]), int(keypoints_right[1, i])), 2, (0, 0, 255), 4)
 
-		im4 = cv2.hconcat([image1, image2])	
+		im4 = cv2.hconcat([image1, image2])
 
 		for i in range(keypoints_left.shape[1]):
 			im4 = cv2.line(im4, (int(keypoints_left[0, i]), int(keypoints_left[1, i])), (int(keypoints_right[0, i]) +  image1.shape[1], int(keypoints_right[1, i])), (0, 255, 0), 1)
@@ -367,6 +363,11 @@ if __name__ == '__main__':
 		use_relu=args.use_relu,
 		use_cuda=use_cuda
 	)
+
+	# model = D2NetE2Inv()
+	# state_dict = torch.load(args.model_file, map_location='cpu')
+	# model.load_state_dict(state_dict['model'])
+	# model = model.to(device)
 
 	image1 = np.array(Image.open(args.imgs[0]))
 	image2 = np.array(Image.open(args.imgs[1]))
